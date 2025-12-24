@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEON // Truth & Emotion Interface</title>
+    <!-- Load Face-API.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --accent-color: #ffffff;
+            --danger-color: #ff2a2a;
+            --success-color: #00ff88;
+            --warning-color: #ffcc00;
+            --info-color: #00a8ff;
+            --purple-color: #9b59b6;
+            --orange-color: #e67e22;
+            --panel-bg: rgba(20, 20, 20, 0.98);
+            --border-color: #333;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Minimalist Header */
+        header {
+            width: 100%;
+            height: 60px;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--border-color);
+            background: #000;
+            z-index: 20;
+        }
+
+        h1 {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 1.5px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Main Viewport */
+        #viewport {
+            position: relative;
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0a0a;
+            overflow: hidden;
+        }
+
+        /* Video & Canvas Stacking */
+        .feed-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video {
+            position: absolute;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: grayscale(30%) contrast(1.2) brightness(0.9); /* Cinematic Gritty Look */
+            /* Mirror the video for better user UX */
+            transform: scaleX(-1);
+        }
+
+        canvas {
+            position: absolute;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            /* Mirror canvas to match video */
+            transform: scaleX(-1);
+        }
+
+        /* Overlay Controls */
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        button {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 14px 36px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            backdrop-filter: blur(4px);
+        }
+
+        button:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+
+        button.active {
+            background: var(--danger-color);
+            border-color: var(--danger-color);
+            color: white;
+            box-shadow: 0 0 20px rgba(255, 42, 42, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #555;
+            color: #555;
+        }
+
+        /* Loading Overlay */
+        #loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 50;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #333;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loader-text {
+            font-size: 0.8rem;
+            letter-spacing: 3px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Report Modal */
+        #report {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.96);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            overflow-y: auto;
+        }
+
+        #report.visible {
+            opacity: 1;
+        }
+
+        .report-card {
+            background: #111;
+            padding: 50px;
+            border: 1px solid #333;
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 40px 0;
+        }
+
+        .report-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+        }
+
+        .verdict-header {
+            margin-bottom: 30px;
+        }
+
+        .verdict-title {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .verdict-result {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        /* Detailed Grid */
+        .trait-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .trait-box {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #222;
+        }
+
+        .trait-label { 
+            font-size: 0.55rem; 
+            color: #888; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .trait-value { 
+            font-size: 1.2rem; 
+            font-weight: 400; 
+            font-family: 'Courier New', monospace;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .mini-bar-track {
+            width: 100%;
+            height: 3px;
+            background: #222;
+            position: relative;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            background: #666;
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        /* Group Dividers */
+        .group-header {
+            grid-column: 1 / -1;
+            font-size: 0.7rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            text-align: left;
+        }
+        
+        /* Specific Colors */
+        .c-truth { color: var(--success-color); background: var(--success-color); }
+        .c-lie { color: var(--danger-color); background: var(--danger-color); }
+        .c-smile { color: var(--warning-color); background: var(--warning-color); }
+        .c-sad { color: var(--info-color); background: var(--info-color); }
+        .c-neutral { color: #ccc; background: #ccc; }
+        .c-anxiety { color: var(--orange-color); background: var(--orange-color); }
+        .c-contempt { color: var(--purple-color); background: var(--purple-color); }
+
+        .disclaimer {
+            font-size: 0.6rem;
+            color: #444;
+            margin-top: 30px;
+            line-height: 1.4;
+            border-top: 1px solid #222;
+            padding-top: 15px;
+            text-align: left;
+        }
+
+        /* Error State */
+        .error-msg {
+            color: var(--danger-color);
+            text-align: center;
+            max-width: 400px;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>AEON // Analyzer</h1>
+        <div class="status" id="statusText">SYSTEM INITIALIZING...</div>
+    </header>
+
+    <div id="viewport">
+        <div id="loader">
+            <div class="spinner"></div>
+            <div class="loader-text" id="loaderText">Loading Neural Nets</div>
+            <div class="error-msg" id="errorMsg">
+                Camera Access Denied.<br>Please allow camera permissions or open this file in a regular browser tab.
+            </div>
+        </div>
+        
+        <div class="feed-container">
+            <video id="video" muted playsinline></video>
+            <canvas id="overlay"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="btnToggle" onclick="toggleSession()" disabled>Start Analysis</button>
+        </div>
+    </div>
+
+    <!-- Final Report Overlay -->
+    <div id="report">
+        <div class="report-card">
+            <div class="verdict-header">
+                <div class="verdict-title">Primary Detected State</div>
+                <h2 class="verdict-result" id="finalVerdict">--</h2>
+            </div>
+            
+            <div class="trait-grid">
+                
+                <!-- Baseline States -->
+                <div class="group-header">Baseline States</div>
+                
+                <div class="trait-box">
+                    <span class="trait-label">Neutral / Calm</span>
+                    <span class="trait-value" id="valNeutral">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-neutral" id="barNeutral"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Smiling (Joy)</span>
+                    <span class="trait-value" id="valSmiling">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-smile" id="barSmiling"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Sadness</span>
+                    <span class="trait-value" id="valSad">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-sad" id="barSad"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Shock / Surprise</span>
+                    <span class="trait-value" id="valSurprise">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill" style="background:#fff" id="barSurprise"></div></div>
+                </div>
+
+                <!-- Eye Tracking / Gaze Analysis -->
+                <div class="group-header">Eye Accessing Cues (NLP)</div>
+                
+                <div class="trait-box">
+                    <span class="trait-label">Constructed (Fabrication)</span>
+                    <span class="trait-value" id="valGazeConstruct">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-lie" id="barGazeConstruct"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Memory (Truth)</span>
+                    <span class="trait-value" id="valGazeMemory">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-truth" id="barGazeMemory"></div></div>
+                </div>
+
+                 <div class="trait-box">
+                    <span class="trait-label">Center Focus</span>
+                    <span class="trait-value" id="valGazeCenter">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-neutral" id="barGazeCenter"></div></div>
+                </div>
+
+                <!-- Complex Analysis -->
+                <div class="group-header">Deduced Traits</div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Truthful / Open</span>
+                    <span class="trait-value" id="valTruth">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-truth" id="barTruth"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Deceptive (Lie)</span>
+                    <span class="trait-value" id="valLie">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-lie" id="barLie"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Confident</span>
+                    <span class="trait-value" id="valConfident">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill" style="background:#fff" id="barConfident"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Depressed</span>
+                    <span class="trait-value" id="valDepressed">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill" style="background:#70a1ff" id="barDepressed"></div></div>
+                </div>
+
+                 <div class="trait-box">
+                    <span class="trait-label">Anxiety / Nerves</span>
+                    <span class="trait-value" id="valAnxiety">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-anxiety" id="barAnxiety"></div></div>
+                </div>
+
+                <div class="trait-box">
+                    <span class="trait-label">Contempt / Disdain</span>
+                    <span class="trait-value" id="valContempt">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-contempt" id="barContempt"></div></div>
+                </div>
+
+                 <div class="trait-box">
+                    <span class="trait-label">Aggression</span>
+                    <span class="trait-value" id="valAggression">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-lie" id="barAggression"></div></div>
+                </div>
+
+                 <div class="trait-box">
+                    <span class="trait-label">Focus / Attention</span>
+                    <span class="trait-value" id="valFocus">0%</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill c-neutral" id="barFocus"></div></div>
+                </div>
+            </div>
+
+            <button onclick="closeReport()">Reset Session</button>
+            
+            <p class="disclaimer">
+                *AEON Advanced Analysis: 
+                <b>NLP Gaze:</b> Looking Up-Right (Subject's perspective) often indicates Visual Construction (Fabrication). Looking Up-Left indicates Visual Memory (Truth).
+                <b>Anxiety:</b> Fear markers + high facial volatility.
+                <br>Results are experimental heuristics.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('overlay');
+        const statusText = document.getElementById('statusText');
+        const btnToggle = document.getElementById('btnToggle');
+        const loader = document.getElementById('loader');
+        const loaderText = document.getElementById('loaderText');
+        
+        let isRunning = false;
+        let isModelLoaded = false;
+        let sessionData = [];
+        
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+
+        async function init() {
+            try {
+                loaderText.innerText = "Downloading Models (5MB)...";
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                isModelLoaded = true;
+                loaderText.innerText = "Requesting Camera Access...";
+                startVideo();
+            } catch (err) {
+                console.error("Model Load Error:", err);
+                loaderText.innerText = "Model Load Failed";
+                loaderText.style.color = "red";
+            }
+        }
+
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: {} })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        onVideoReady();
+                    };
+                })
+                .catch(err => {
+                    console.error("Camera Error:", err);
+                    document.querySelector('.spinner').style.display = 'none';
+                    loaderText.style.display = 'none';
+                    document.getElementById('errorMsg').style.display = 'block';
+                    statusText.innerText = "CAMERA ACCESS DENIED";
+                    statusText.style.color = "#ff2a2a";
+                });
+        }
+
+        function onVideoReady() {
+            loader.style.display = 'none';
+            statusText.innerText = "SYSTEM READY // STANDBY";
+            btnToggle.disabled = false;
+            startVisualLoop();
+        }
+
+        function startVisualLoop() {
+            // Safety: Ensure video is actually rendering with dimensions
+            if (video.clientWidth === 0 || video.clientHeight === 0) {
+                requestAnimationFrame(startVisualLoop);
+                return;
+            }
+
+            const displaySize = { width: video.clientWidth, height: video.clientHeight };
+            faceapi.matchDimensions(canvas, displaySize);
+
+            window.addEventListener('resize', () => {
+                const newSize = { width: video.clientWidth, height: video.clientHeight };
+                faceapi.matchDimensions(canvas, newSize);
+            });
+
+            setInterval(async () => {
+                if(video.paused || video.ended || !isModelLoaded) return;
+                if (video.clientWidth < 1 || video.clientHeight < 1) return;
+
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceExpressions();
+
+                if (video.clientWidth < 1 || video.clientHeight < 1) return;
+                
+                const dims = faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
+                const resizedDetections = faceapi.resizeResults(detections, dims);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                resizedDetections.forEach(det => {
+                    const box = det.detection.box;
+                    const emotions = det.expressions;
+                    const landmarks = det.landmarks;
+
+                    // --- GAZE DETECTION LOGIC (Heuristic) ---
+                    // Using Nose Tip (Point 30) relative to Eye Centers
+                    // Note: Video is mirrored via CSS scaleX(-1), but coordinates here are raw video coords.
+                    // Raw Video: Subject moves Right -> x increases. Subject moves Left -> x decreases.
+                    
+                    const nose = landmarks.getNose()[3]; // Point 30 (Tip of nose)
+                    const leftEye = landmarks.getLeftEye(); // Points 36-41
+                    const rightEye = landmarks.getRightEye(); // Points 42-47
+
+                    const leftEyeX = (leftEye[0].x + leftEye[3].x) / 2;
+                    const rightEyeX = (rightEye[0].x + rightEye[3].x) / 2;
+                    const eyeWidth = rightEyeX - leftEyeX; // Distance between eyes
+                    
+                    // Normalize Nose Position (0.0 to 1.0 between eyes)
+                    // 0.5 is perfectly center
+                    // < 0.5 means nose is closer to left eye (Head turned Left -> Subject Looking Right)
+                    // > 0.5 means nose is closer to right eye (Head turned Right -> Subject Looking Left)
+                    const noseRelativeX = (nose.x - leftEyeX) / eyeWidth;
+                    
+                    let gazeDirection = "CENTER";
+                    let gazeScore = "0";
+
+                    // Thresholds
+                    if (noseRelativeX < 0.45) {
+                        // Nose closer to Left Eye (Image Left).
+                        // In raw video, this means Subject turned to THEIR Right.
+                        gazeDirection = "RIGHT (Constructed)"; 
+                    } else if (noseRelativeX > 0.55) {
+                        // Nose closer to Right Eye (Image Right).
+                        // In raw video, this means Subject turned to THEIR Left.
+                        gazeDirection = "LEFT (Memory)";
+                    } else {
+                        // Check Vertical (Simpler approximation using nose vs eye height)
+                        // This is tricky with 2D landmarks, assuming roughly center for now
+                        gazeDirection = "CENTER";
+                    }
+                    
+                    // Simple Dominant Emotion for Real-time Display
+                    const sortedEmotions = Object.entries(emotions).sort((a,b) => b[1] - a[1]);
+                    const dominant = sortedEmotions[0];
+                    
+                    let boxColor = '#ffffff'; 
+                    if (isRunning) boxColor = '#ff2a2a';
+                    
+                    // Draw Box
+                    ctx.strokeStyle = boxColor;
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                    // Draw Emotion Label
+                    ctx.fillStyle = boxColor;
+                    ctx.fillRect(box.x, box.y - 20, box.width, 20);
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 11px Courier New';
+                    let label = dominant[0].toUpperCase();
+                    if(label === 'HAPPY') label = 'SMILING';
+                    ctx.fillText(`${label} ${(dominant[1]*100).toFixed(0)}%`, box.x + 5, box.y - 6);
+
+                    // Draw Gaze Indicator
+                    ctx.fillStyle = boxColor;
+                    ctx.fillRect(box.x, box.y + box.height, box.width, 20);
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(`GAZE: ${gazeDirection.split(' ')[0]}`, box.x + 5, box.y + box.height + 14);
+
+                    // Collect detailed frame data
+                    if(isRunning) {
+                        sessionData.push({
+                            emotions: emotions,
+                            gaze: gazeDirection
+                        });
+                    }
+                });
+            }, 100);
+        }
+
+        function toggleSession() {
+            if (!isRunning) {
+                // START
+                sessionData = [];
+                isRunning = true;
+                btnToggle.innerText = "STOP & DEDUCT";
+                btnToggle.classList.add('active');
+                statusText.innerText = "RECORDING BIOMETRICS...";
+                statusText.style.color = "#ff2a2a";
+            } else {
+                // STOP
+                isRunning = false;
+                btnToggle.innerText = "PROCESSING...";
+                btnToggle.classList.remove('active');
+                btnToggle.disabled = true;
+                
+                setTimeout(() => {
+                    generateReport();
+                    btnToggle.innerText = "START ANALYSIS";
+                    btnToggle.disabled = false;
+                    statusText.innerText = "SYSTEM READY";
+                    statusText.style.color = "#888";
+                }, 1000);
+            }
+        }
+
+        // --- CORE ANALYSIS LOGIC ---
+
+        function calculateVolatility(data) {
+            if (data.length < 2) return 0;
+            
+            let totalDelta = 0;
+            for(let i=1; i<data.length; i++) {
+                const prev = data[i-1].emotions;
+                const curr = data[i].emotions;
+                let frameDelta = 
+                    Math.abs(prev.neutral - curr.neutral) +
+                    Math.abs(prev.happy - curr.happy) +
+                    Math.abs(prev.sad - curr.sad) +
+                    Math.abs(prev.angry - curr.angry) +
+                    Math.abs(prev.fearful - curr.fearful) +
+                    Math.abs(prev.disgusted - curr.disgusted);
+                totalDelta += frameDelta;
+            }
+            return totalDelta / (data.length - 1);
+        }
+
+        function generateReport() {
+            if (sessionData.length < 15) {
+                alert("Insufficient data. Please record for at least 3-5 seconds.");
+                return;
+            }
+
+            // 1. Calculate Averages
+            let avgs = { neutral: 0, happy: 0, sad: 0, angry: 0, fearful: 0, disgusted: 0, surprised: 0 };
+            let gazeCounts = { construct: 0, memory: 0, center: 0 };
+
+            sessionData.forEach(e => {
+                // Emotions
+                for (let k in avgs) avgs[k] += e.emotions[k] || 0;
+                
+                // Gaze
+                if (e.gaze.includes("RIGHT")) gazeCounts.construct++;
+                else if (e.gaze.includes("LEFT")) gazeCounts.memory++;
+                else gazeCounts.center++;
+            });
+
+            const totalFrames = sessionData.length;
+            for (let k in avgs) avgs[k] /= totalFrames;
+            
+            // Gaze Percentages
+            const pctConstruct = gazeCounts.construct / totalFrames;
+            const pctMemory = gazeCounts.memory / totalFrames;
+            const pctCenter = gazeCounts.center / totalFrames;
+
+            // 2. Calculate Volatility (Jitter)
+            const volatility = calculateVolatility(sessionData); 
+
+            // 3. TRAIT ALGORITHMS
+            
+            // Baseline
+            const scoreSmiling = avgs.happy;
+            const scoreNeutral = avgs.neutral;
+            const scoreSad = avgs.sad;
+            const scoreSurprise = avgs.surprised;
+
+            // Deduced / Complex Traits
+
+            // Anxiety: Fear markers + High Volatility (Shifting)
+            let rawAnxiety = avgs.fearful + (volatility * 2.5);
+            const scoreAnxiety = Math.max(0, Math.min(1, rawAnxiety));
+
+            // Contempt/Disdain: Disgust + some Anger (Moral superiority/judgment)
+            let rawContempt = avgs.disgusted + (avgs.angry * 0.3);
+            const scoreContempt = Math.max(0, Math.min(1, rawContempt));
+
+            // Aggression: Sustained Anger
+            const scoreAggression = avgs.angry;
+
+            // Focus: High Neutral + Low Volatility (Stillness) + Center Gaze
+            let rawFocus = (avgs.neutral * 1.2) - (volatility * 2) - avgs.happy - avgs.sad + (pctCenter * 0.3);
+            const scoreFocus = Math.max(0, Math.min(1, rawFocus));
+
+            // Confident: High Neutral/Focus + Low Fear + Low Sad
+            let rawConfident = avgs.neutral + (avgs.happy * 0.2) - avgs.fearful - avgs.sad - (volatility * 1.5);
+            const scoreConfident = Math.max(0, Math.min(1, rawConfident));
+
+            // Truthful: High Congruence (Happy/Neutral) + Low Stress + Memory Gaze (Left)
+            // Bonus for Memory Gaze
+            let gazeBonusTruth = pctMemory * 0.4;
+            let rawTruth = (avgs.neutral + avgs.happy) - (avgs.fearful + avgs.disgusted + avgs.angry) - (volatility * 1.5) + gazeBonusTruth;
+            const scoreTruth = Math.max(0, Math.min(1, rawTruth));
+
+            // Lying (Deceptive): Stress markers + High Volatility + Constructed Gaze (Right)
+            // Bonus for Constructed Gaze
+            let gazeBonusLie = pctConstruct * 0.5; // High weight for gaze fabrication
+            let rawLie = (avgs.fearful + avgs.disgusted + avgs.angry) + (volatility * 2.5) + gazeBonusLie;
+            const scoreLie = Math.max(0, Math.min(1, rawLie));
+
+            // Depressed: Sadness OR Flat Affect
+            let flatAffect = (avgs.neutral > 0.6 && avgs.happy < 0.1 && avgs.surprised < 0.1) ? 0.5 : 0;
+            let rawDepressed = avgs.sad + flatAffect;
+            const scoreDepressed = Math.max(0, Math.min(1, rawDepressed));
+
+
+            // 4. Update UI Bars
+            updateBar('valNeutral', 'barNeutral', scoreNeutral);
+            updateBar('valSmiling', 'barSmiling', scoreSmiling);
+            updateBar('valSad', 'barSad', scoreSad);
+            updateBar('valSurprise', 'barSurprise', scoreSurprise);
+            
+            updateBar('valTruth', 'barTruth', scoreTruth);
+            updateBar('valLie', 'barLie', scoreLie);
+            updateBar('valConfident', 'barConfident', scoreConfident);
+            updateBar('valDepressed', 'barDepressed', scoreDepressed);
+            updateBar('valAnxiety', 'barAnxiety', scoreAnxiety);
+            updateBar('valContempt', 'barContempt', scoreContempt);
+            updateBar('valAggression', 'barAggression', scoreAggression);
+            updateBar('valFocus', 'barFocus', scoreFocus);
+
+            // Gaze Bars
+            updateBar('valGazeConstruct', 'barGazeConstruct', pctConstruct);
+            updateBar('valGazeMemory', 'barGazeMemory', pctMemory);
+            updateBar('valGazeCenter', 'barGazeCenter', pctCenter);
+
+            // 5. Determine Verdict
+            let verdict = "UNCERTAIN";
+            let color = "#888";
+
+            // Logic Priority
+            if (scoreAggression > 0.5) {
+                verdict = "HOSTILE / AGGRESSIVE";
+                color = "#ff2a2a";
+            } else if (scoreContempt > 0.5) {
+                verdict = "CONTEMPT / DISDAIN";
+                color = "#9b59b6";
+            } else if (scoreAnxiety > 0.45 && scoreAnxiety > scoreTruth) {
+                verdict = "HIGH ANXIETY";
+                color = "#e67e22";
+            } else if (scoreDepressed > 0.6) {
+                verdict = "DEPRESSIVE STATE";
+                color = "#70a1ff";
+            } else if (scoreLie > 0.5 && scoreLie > scoreTruth) {
+                verdict = "DECEPTION LIKELY";
+                color = "#ff2a2a";
+            } else if (scoreFocus > 0.65) {
+                verdict = "FOCUSED / ANALYTICAL";
+                color = "#ccc";
+            } else if (scoreTruth > 0.6) {
+                verdict = "TRUTHFUL";
+                color = "#00ff88";
+            } else if (scoreConfident > 0.6) {
+                verdict = "CONFIDENT";
+                color = "#ffffff";
+            } else if (scoreSmiling > 0.6) {
+                verdict = "SMILING / JOYFUL";
+                color = "#ffcc00";
+            } else if (scoreSad > 0.5) {
+                verdict = "SADNESS";
+                color = "#70a1ff";
+            }
+
+            const verdictEl = document.getElementById('finalVerdict');
+            verdictEl.innerText = verdict;
+            verdictEl.style.color = color;
+
+            // Show Report
+            const reportEl = document.getElementById('report');
+            reportEl.style.display = 'flex';
+            requestAnimationFrame(() => reportEl.classList.add('visible'));
+        }
+
+        function updateBar(textId, barId, value) {
+            const pct = (value * 100).toFixed(0) + "%";
+            document.getElementById(textId).innerText = pct;
+            document.getElementById(barId).style.width = pct;
+        }
+
+        function closeReport() {
+            const reportEl = document.getElementById('report');
+            reportEl.classList.remove('visible');
+            setTimeout(() => {
+                reportEl.style.display = 'none';
+            }, 500);
+        }
+
+        window.addEventListener('load', init);
+
+    </script>
+</body>
+</html>
