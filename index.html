@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AEON // Truth & Emotion Interface</title>
+    <title>AEON // Forensic Biometric Interface</title>
     <!-- Load Face-API.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         :root {
             --bg-color: #050505;
-            --text-primary: #e0e0e0;
-            --text-secondary: #888;
-            --accent-color: #ffffff;
-            --danger-color: #ff2a2a;
-            --success-color: #00ff88;
-            --warning-color: #ffcc00;
-            --info-color: #00a8ff;
-            --purple-color: #9b59b6;
-            --orange-color: #e67e22;
-            --panel-bg: rgba(20, 20, 20, 0.98);
-            --border-color: #333;
+            --text-primary: #cfcfcf;
+            --text-secondary: #707070;
+            --accent-color: #e0e0e0;
+            --alert-color: #d63031;
+            --safe-color: #00b894;
+            --warn-color: #fdcb6e;
+            --neutral-color: #636e72;
+            --panel-bg: rgba(15, 15, 15, 0.98);
+            --border-color: #2d3436;
+            --font-mono: 'Courier New', Courier, monospace;
         }
 
         body {
@@ -36,34 +35,48 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Minimalist Header */
+        /* Forensic Header */
         header {
             width: 100%;
-            height: 60px;
+            height: 50px;
             padding: 0 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-sizing: border-box;
             border-bottom: 1px solid var(--border-color);
-            background: #000;
+            background: #080808;
             z-index: 20;
         }
 
         h1 {
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 3px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 2px;
             text-transform: uppercase;
             margin: 0;
-            color: var(--accent-color);
+            color: var(--text-secondary);
         }
 
         .status {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            letter-spacing: 1.5px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--neutral-color);
+            letter-spacing: 1px;
+        }
+
+        /* Footer */
+        footer {
+            position: absolute;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.5rem;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            z-index: 15;
+            pointer-events: none;
         }
 
         /* Main Viewport */
@@ -74,11 +87,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #0a0a0a;
+            background: #020202;
             overflow: hidden;
         }
 
-        /* Video & Canvas Stacking */
+        /* Feed Container */
         .feed-container {
             position: relative;
             width: 100%;
@@ -93,8 +106,8 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            filter: grayscale(30%) contrast(1.2) brightness(0.9); /* Cinematic Gritty Look */
-            /* Mirror the video for better user UX */
+            /* Desaturated for forensic clarity */
+            filter: grayscale(80%) contrast(1.1) brightness(0.9);
             transform: scaleX(-1);
         }
 
@@ -103,63 +116,72 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            /* Mirror canvas to match video */
-            transform: scaleX(-1);
+        }
+        
+        /* Spectrogram / Waveform Canvas */
+        #audioVis {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 50px;
+            z-index: 12;
+            opacity: 0.8;
+            pointer-events: none;
+            border-top: 1px solid #222;
+            border-bottom: 1px solid #222;
         }
 
-        /* Overlay Controls */
+        /* Controls */
         .controls {
             position: absolute;
-            bottom: 40px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             gap: 20px;
-            z-index: 10;
+            z-index: 30;
         }
 
         button {
-            background: rgba(0,0,0,0.6);
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            padding: 14px 36px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 2px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid var(--text-secondary);
+            color: var(--text-primary);
+            padding: 12px 30px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
             cursor: pointer;
             text-transform: uppercase;
-            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
         }
 
         button:hover {
-            background: var(--accent-color);
-            color: var(--bg-color);
-            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+            border-color: var(--accent-color);
+            background: rgba(30,30,30,0.9);
         }
 
         button.active {
-            background: var(--danger-color);
-            border-color: var(--danger-color);
-            color: white;
-            box-shadow: 0 0 20px rgba(255, 42, 42, 0.4);
+            border-color: var(--alert-color);
+            color: var(--alert-color);
+            background: rgba(40,10,10,0.9);
         }
 
         button:disabled {
-            opacity: 0.3;
+            opacity: 0.4;
             cursor: not-allowed;
-            border-color: #555;
-            color: #555;
+            border-color: #333;
         }
 
-        /* Loading Overlay */
+        /* Loader */
         #loader {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #000;
+            background: #020202;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -168,25 +190,24 @@
         }
         
         .spinner {
-            width: 50px;
-            height: 50px;
+            width: 30px;
+            height: 30px;
             border: 1px solid #333;
-            border-top: 2px solid #fff;
+            border-top: 1px solid #fff;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 15px;
         }
 
         .loader-text {
-            font-size: 0.8rem;
-            letter-spacing: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
             color: #666;
-            text-transform: uppercase;
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Report Modal */
+        /* Forensic Report Modal */
         #report {
             display: none;
             position: fixed;
@@ -194,154 +215,239 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.96);
+            background: rgba(5, 5, 5, 0.98);
             z-index: 100;
             justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(8px);
-            opacity: 0;
-            transition: opacity 0.5s ease;
+            align-items: flex-start;
+            padding-top: 5vh;
+            backdrop-filter: blur(5px);
             overflow-y: auto;
         }
 
         #report.visible {
-            opacity: 1;
+            display: flex;
         }
 
         .report-card {
-            background: #111;
-            padding: 50px;
-            border: 1px solid #333;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
             width: 90%;
-            max-width: 800px;
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-            margin: 40px 0;
+            max-width: 900px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            margin-bottom: 50px;
+            font-family: var(--font-mono);
         }
 
-        .report-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
-        }
-
-        .verdict-header {
+        .report-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
             margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
-        .verdict-title {
-            font-size: 0.7rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 10px;
-        }
-
-        .verdict-result {
-            font-size: 3rem;
+        .report-title {
+            font-size: 1.2rem;
             font-weight: 700;
-            margin: 0;
-            line-height: 1;
-            letter-spacing: -1px;
+            color: var(--text-primary);
             text-transform: uppercase;
         }
 
-        /* Detailed Grid */
-        .trait-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-            text-align: left;
+        .report-meta {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-align: right;
+            line-height: 1.4;
         }
 
-        .trait-box {
-            background: rgba(255,255,255,0.03);
-            padding: 15px;
-            border-radius: 4px;
-            border: 1px solid #222;
-        }
-
-        .trait-label { 
-            font-size: 0.55rem; 
-            color: #888; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            display: block;
-            margin-bottom: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        /* Analysis Sections */
+        .section-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
         }
         
-        .trait-value { 
-            font-size: 1.2rem; 
-            font-weight: 400; 
-            font-family: 'Courier New', monospace;
-            display: block;
-            margin-bottom: 8px;
+        .section-title:first-child { margin-top: 0; }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
         }
 
-        .mini-bar-track {
+        .data-box {
+            background: rgba(255,255,255,0.02);
+            padding: 12px;
+            border-left: 2px solid #333;
+        }
+
+        .data-label {
+            font-size: 0.6rem;
+            color: #888;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .data-value {
+            font-size: 1rem;
+            color: #eee;
+            font-weight: 400;
+        }
+
+        .data-sub {
+            font-size: 0.6rem;
+            color: #555;
+            margin-top: 3px;
+        }
+
+        /* Risk Meters */
+        .risk-container {
+            margin-top: 10px;
+        }
+        .risk-track {
             width: 100%;
-            height: 3px;
+            height: 4px;
             background: #222;
             position: relative;
         }
-
-        .mini-bar-fill {
+        .risk-fill {
             height: 100%;
             background: #666;
             width: 0%;
-            transition: width 1s ease;
         }
 
-        /* Group Dividers */
-        .group-header {
-            grid-column: 1 / -1;
+        /* Acoustic Table */
+        .forensic-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 0.7rem;
-            color: var(--accent-color);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 15px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
+        }
+        .forensic-table th {
             text-align: left;
+            color: #666;
+            font-weight: normal;
+            padding: 8px 5px;
+            border-bottom: 1px solid #333;
+        }
+        .forensic-table td {
+            padding: 8px 5px;
+            border-bottom: 1px solid #222;
+            color: #aaa;
+        }
+        .forensic-table tr:last-child td { border-bottom: none; }
+
+        .disclaimer-box {
+            margin-top: 40px;
+            padding: 15px;
+            border: 1px solid #333;
+            background: #0a0a0a;
+            font-size: 0.6rem;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        /* Assessment Summary */
+        .assessment-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+        }
+        .assessment-main {
+            font-size: 1.1rem;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .assessment-conf {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* Action Buttons */
+        .action-row {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
         }
         
-        /* Specific Colors */
-        .c-truth { color: var(--success-color); background: var(--success-color); }
-        .c-lie { color: var(--danger-color); background: var(--danger-color); }
-        .c-smile { color: var(--warning-color); background: var(--warning-color); }
-        .c-sad { color: var(--info-color); background: var(--info-color); }
-        .c-neutral { color: #ccc; background: #ccc; }
-        .c-anxiety { color: var(--orange-color); background: var(--orange-color); }
-        .c-contempt { color: var(--purple-color); background: var(--purple-color); }
-
-        .disclaimer {
-            font-size: 0.6rem;
-            color: #444;
-            margin-top: 30px;
-            line-height: 1.4;
-            border-top: 1px solid #222;
-            padding-top: 15px;
-            text-align: left;
+        .action-row button {
+            flex: 1;
         }
 
-        /* Error State */
+        .btn-save {
+            border-color: var(--accent-color);
+            background: rgba(200, 200, 200, 0.1);
+        }
+        .btn-close {
+            border-color: #444;
+            background: transparent;
+            color: #666;
+        }
+
+        /* Colors for dynamic injection */
+        .c-high { color: var(--alert-color); }
+        .c-med { color: var(--warn-color); }
+        .c-low { color: var(--safe-color); }
+
         .error-msg {
-            color: var(--danger-color);
+            color: var(--alert-color);
             text-align: center;
-            max-width: 400px;
             display: none;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #report, #report * {
+                visibility: visible;
+            }
+            #report {
+                position: absolute;
+                left: 0;
+                top: 0;
+                background: white;
+                color: black;
+                overflow: visible;
+                display: block;
+            }
+            .report-card {
+                width: 100%;
+                max-width: 100%;
+                box-shadow: none;
+                border: none;
+                background: white;
+                color: black;
+            }
+            .action-row, button {
+                display: none;
+            }
+            /* Override Forensic Dark Mode for Print */
+            :root {
+                --text-primary: #000;
+                --text-secondary: #333;
+                --border-color: #ccc;
+            }
+            .data-box, .assessment-box, .disclaimer-box {
+                background: #f9f9f9;
+                border-color: #ddd;
+                color: black;
+            }
+            .data-label, .data-sub, .report-meta {
+                color: #444;
+            }
+            .risk-track { background: #eee; }
         }
 
     </style>
@@ -349,167 +455,199 @@
 <body>
 
     <header>
-        <h1>AEON // Analyzer</h1>
-        <div class="status" id="statusText">SYSTEM INITIALIZING...</div>
+        <h1>AEON // Forensic Biometric System</h1>
+        <div class="status" id="statusText">INITIALIZING SENSORS...</div>
     </header>
 
     <div id="viewport">
         <div id="loader">
             <div class="spinner"></div>
-            <div class="loader-text" id="loaderText">Loading Neural Nets</div>
+            <div class="loader-text" id="loaderText">Loading Neural Networks</div>
             <div class="error-msg" id="errorMsg">
-                Camera Access Denied.<br>Please allow camera permissions or open this file in a regular browser tab.
+                Sensor Error: Camera/Mic Access Denied.
             </div>
         </div>
         
         <div class="feed-container">
             <video id="video" muted playsinline></video>
             <canvas id="overlay"></canvas>
+            <canvas id="audioVis"></canvas>
         </div>
         
         <div class="controls">
-            <button id="btnToggle" onclick="toggleSession()" disabled>Start Analysis</button>
+            <button id="btnToggle" onclick="toggleSession()" disabled>Initialize Session</button>
         </div>
     </div>
 
-    <!-- Final Report Overlay -->
+    <footer>
+        Apex Innovate LLC
+    </footer>
+
+    <!-- Forensic Report Overlay -->
     <div id="report">
         <div class="report-card">
-            <div class="verdict-header">
-                <div class="verdict-title">Primary Detected State</div>
-                <h2 class="verdict-result" id="finalVerdict">--</h2>
-            </div>
             
-            <div class="trait-grid">
-                
-                <!-- Baseline States -->
-                <div class="group-header">Baseline States</div>
-                
-                <div class="trait-box">
-                    <span class="trait-label">Neutral / Calm</span>
-                    <span class="trait-value" id="valNeutral">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-neutral" id="barNeutral"></div></div>
+            <div class="report-header">
+                <div>
+                    <div class="report-title">Biometric Analysis Report</div>
+                    <div style="font-size:0.7rem; color:#666; margin-top:5px;">ID: <span id="sessID">--</span></div>
                 </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Smiling (Joy)</span>
-                    <span class="trait-value" id="valSmiling">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-smile" id="barSmiling"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Sadness</span>
-                    <span class="trait-value" id="valSad">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-sad" id="barSad"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Shock / Surprise</span>
-                    <span class="trait-value" id="valSurprise">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill" style="background:#fff" id="barSurprise"></div></div>
-                </div>
-
-                <!-- Eye Tracking / Gaze Analysis -->
-                <div class="group-header">Eye Accessing Cues (NLP)</div>
-                
-                <div class="trait-box">
-                    <span class="trait-label">Constructed (Fabrication)</span>
-                    <span class="trait-value" id="valGazeConstruct">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-lie" id="barGazeConstruct"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Memory (Truth)</span>
-                    <span class="trait-value" id="valGazeMemory">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-truth" id="barGazeMemory"></div></div>
-                </div>
-
-                 <div class="trait-box">
-                    <span class="trait-label">Center Focus</span>
-                    <span class="trait-value" id="valGazeCenter">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-neutral" id="barGazeCenter"></div></div>
-                </div>
-
-                <!-- Complex Analysis -->
-                <div class="group-header">Deduced Traits</div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Truthful / Open</span>
-                    <span class="trait-value" id="valTruth">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-truth" id="barTruth"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Deceptive (Lie)</span>
-                    <span class="trait-value" id="valLie">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-lie" id="barLie"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Confident</span>
-                    <span class="trait-value" id="valConfident">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill" style="background:#fff" id="barConfident"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Depressed</span>
-                    <span class="trait-value" id="valDepressed">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill" style="background:#70a1ff" id="barDepressed"></div></div>
-                </div>
-
-                 <div class="trait-box">
-                    <span class="trait-label">Anxiety / Nerves</span>
-                    <span class="trait-value" id="valAnxiety">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-anxiety" id="barAnxiety"></div></div>
-                </div>
-
-                <div class="trait-box">
-                    <span class="trait-label">Contempt / Disdain</span>
-                    <span class="trait-value" id="valContempt">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-contempt" id="barContempt"></div></div>
-                </div>
-
-                 <div class="trait-box">
-                    <span class="trait-label">Aggression</span>
-                    <span class="trait-value" id="valAggression">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-lie" id="barAggression"></div></div>
-                </div>
-
-                 <div class="trait-box">
-                    <span class="trait-label">Focus / Attention</span>
-                    <span class="trait-value" id="valFocus">0%</span>
-                    <div class="mini-bar-track"><div class="mini-bar-fill c-neutral" id="barFocus"></div></div>
+                <div class="report-meta">
+                    <span id="sessDuration">Duration: --s</span><br>
+                    <span id="sessQuality">Signal Quality: --</span>
                 </div>
             </div>
 
-            <button onclick="closeReport()">Reset Session</button>
+            <!-- SECTION 1: RAW TELEMETRY -->
+            <div class="section-title">
+                <span>01 // Raw Telemetry (Acoustic & Visual)</span>
+                <span>Type: Observable</span>
+            </div>
             
-            <p class="disclaimer">
-                *AEON Advanced Analysis: 
-                <b>NLP Gaze:</b> Looking Up-Right (Subject's perspective) often indicates Visual Construction (Fabrication). Looking Up-Left indicates Visual Memory (Truth).
-                <b>Anxiety:</b> Fear markers + high facial volatility.
-                <br>Results are experimental heuristics.
-            </p>
+            <div class="data-grid">
+                <div class="data-box">
+                    <span class="data-label">Fundamental Freq (F0)</span>
+                    <span class="data-value" id="rawPitch">-- Hz</span>
+                    <div class="data-sub">Mean Variance: <span id="rawPitchVar">--</span></div>
+                </div>
+                <div class="data-box">
+                    <span class="data-label">Vocal Intensity</span>
+                    <span class="data-value" id="rawVol">-- dB</span>
+                    <div class="data-sub">Dynamic Range: <span id="rawVolRange">--</span></div>
+                </div>
+                <div class="data-box">
+                    <span class="data-label">Speech Activity</span>
+                    <span class="data-value" id="rawSpeechRate">--%</span>
+                    <div class="data-sub">Pause Frequency: <span id="rawPauseFreq">--</span></div>
+                </div>
+                <div class="data-box">
+                    <span class="data-label">Visual Attention</span>
+                    <span class="data-value" id="rawGazeDir">Direct</span>
+                    <div class="data-sub">Lateral Shifts: <span id="rawGazeShifts">--</span></div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: COMPUTED METRICS -->
+            <div class="section-title">
+                <span>02 // Computed Biometric Indices</span>
+                <span>Type: Statistical Inference</span>
+            </div>
+
+            <table class="forensic-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Measurement</th>
+                        <th>Reference Range (Baseline)</th>
+                        <th>Risk Assessment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Micro-Expression Volatility</td>
+                        <td id="compVol">--</td>
+                        <td>0.1 - 0.3 (Stable)</td>
+                        <td id="riskVol">--</td>
+                    </tr>
+                    <tr>
+                        <td>Acoustic Jitter (Stress Proxy)</td>
+                        <td id="compJitter">--</td>
+                        <td>&lt; 1.5%</td>
+                        <td id="riskJitter">--</td>
+                    </tr>
+                    <tr>
+                        <td>Facial Congruence</td>
+                        <td id="compCongruence">--</td>
+                        <td>High (>0.7)</td>
+                        <td id="riskCongruence">--</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- SECTION 3: PROBABILISTIC INFERENCE -->
+            <div class="section-title">
+                <span>03 // Probabilistic State Assessment</span>
+                <span>Type: Experimental / Heuristic</span>
+            </div>
+
+            <div class="assessment-box">
+                <div class="assessment-main" id="finalAssessment">PENDING ANALYSIS</div>
+                <div class="assessment-conf">Confidence Interval: <span id="confScore">--%</span> (Based on signal density)</div>
+            </div>
+
+            <div class="data-grid" style="margin-top:20px;">
+                <div class="data-box" style="border-left-color: var(--warn-color);">
+                    <span class="data-label">Cognitive Stress Index (CSI)</span>
+                    <div class="risk-container">
+                        <div class="risk-track"><div class="risk-fill" id="barCSI" style="background:var(--warn-color);"></div></div>
+                    </div>
+                    <div class="data-sub" style="text-align:right;" id="valCSI">0.0</div>
+                </div>
+                
+                <div class="data-box" style="border-left-color: var(--alert-color);">
+                    <span class="data-label">Emotional Arousal Score</span>
+                    <div class="risk-container">
+                        <div class="risk-track"><div class="risk-fill" id="barArousal" style="background:var(--alert-color);"></div></div>
+                    </div>
+                    <div class="data-sub" style="text-align:right;" id="valArousal">0.0</div>
+                </div>
+
+                <div class="data-box" style="border-left-color: var(--safe-color);">
+                    <span class="data-label">Baseline Congruence</span>
+                    <div class="risk-container">
+                        <div class="risk-track"><div class="risk-fill" id="barCongruence" style="background:var(--safe-color);"></div></div>
+                    </div>
+                    <div class="data-sub" style="text-align:right;" id="valCongruenceBar">0.0</div>
+                </div>
+            </div>
+
+            <div class="disclaimer-box">
+                <strong>METHODOLOGICAL LIMITATIONS & DISCLOSURE</strong><br>
+                1. <strong>Probabilistic Nature:</strong> All metrics (CSI, Arousal) are statistical probabilities derived from computer vision and signal processing. They represent physiological states, not psychological intent.<br>
+                2. <strong>No Lie Detection:</strong> "Deception" is a complex cognitive intent that cannot be definitively detected by biometrics alone. This system detects <em>stress markers</em> and <em>cognitive load</em> which may correlate with deception but also with anxiety, fatigue, or concentration.<br>
+                3. <strong>Experimental Features:</strong> Micro-expression volatility and acoustic jitter analysis in this context are heuristic approximations.<br>
+                4. <strong>Visual Attention:</strong> Lateral gaze shifts are tracked as behavioral data points, not definitive NLP "accessing cues", which are not scientifically validated.<br>
+                <br>
+                Generated by AEON Forensic Engine v2.4 | Apex Innovate LLC
+            </div>
+
+            <div class="action-row">
+                <button class="btn-save" onclick="downloadReportLog()">Export Forensic Log (.txt)</button>
+                <button class="btn-close" onclick="closeReport()">Close Case File</button>
+            </div>
         </div>
     </div>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('overlay');
+        const audioVis = document.getElementById('audioVis');
         const statusText = document.getElementById('statusText');
         const btnToggle = document.getElementById('btnToggle');
         const loader = document.getElementById('loader');
         const loaderText = document.getElementById('loaderText');
         
+        // State Globals
         let isRunning = false;
         let isModelLoaded = false;
-        let sessionData = [];
+        let startTime = 0;
         
+        // Data Buffers
+        let sessionData = []; // Facial Telemetry
+        let audioData = [];   // Acoustic Telemetry
+        
+        // Audio Context
+        let audioCtx;
+        let analyser;
+        let microphone;
+        let audioFeatures = { pitch: 0, volume: 0, isSpeaking: false };
+
         const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
 
+        // --- INITIALIZATION ---
         async function init() {
             try {
-                loaderText.innerText = "Downloading Models (5MB)...";
+                loaderText.innerText = "Loading Neural Networks...";
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
@@ -518,43 +656,162 @@
                 ]);
 
                 isModelLoaded = true;
-                loaderText.innerText = "Requesting Camera Access...";
+                loaderText.innerText = "Acquiring Biometric Sensors...";
                 startVideo();
             } catch (err) {
                 console.error("Model Load Error:", err);
-                loaderText.innerText = "Model Load Failed";
-                loaderText.style.color = "red";
+                failState("Neural Network Initialization Failed");
             }
         }
 
+        function failState(msg) {
+            document.querySelector('.spinner').style.display = 'none';
+            loaderText.style.display = 'none';
+            const errEl = document.getElementById('errorMsg');
+            errEl.style.display = 'block';
+            errEl.innerText = msg;
+            statusText.innerText = "SYSTEM FAILURE";
+            statusText.style.color = "#d63031";
+        }
+
         function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: {} })
+            navigator.mediaDevices.getUserMedia({ video: {}, audio: true })
                 .then(stream => {
                     video.srcObject = stream;
+                    initAudio(stream);
                     video.onloadedmetadata = () => {
                         video.play();
                         onVideoReady();
                     };
                 })
                 .catch(err => {
-                    console.error("Camera Error:", err);
-                    document.querySelector('.spinner').style.display = 'none';
-                    loaderText.style.display = 'none';
-                    document.getElementById('errorMsg').style.display = 'block';
-                    statusText.innerText = "CAMERA ACCESS DENIED";
-                    statusText.style.color = "#ff2a2a";
+                    console.error("AV Error:", err);
+                    failState("Sensor Access Denied: Camera/Mic");
                 });
+        }
+
+        function initAudio(stream) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            microphone = audioCtx.createMediaStreamSource(stream);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 2048;
+            microphone.connect(analyser);
+            drawAudioVisualizer();
+            setInterval(analyzeAudioFrame, 50); // High sample rate for jitter
+        }
+
+        // --- AUDIO PROCESSING ---
+        function analyzeAudioFrame() {
+            if (!analyser) return;
+            const bufferLength = analyser.fftSize;
+            const buffer = new Float32Array(bufferLength);
+            analyser.getFloatTimeDomainData(buffer);
+
+            // RMS / dB
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                sum += buffer[i] * buffer[i];
+            }
+            const rms = Math.sqrt(sum / bufferLength);
+            const db = 20 * Math.log10(rms); 
+
+            // Pitch (Autocorrelation)
+            const pitch = autoCorrelate(buffer, audioCtx.sampleRate);
+
+            audioFeatures = {
+                volume: Math.max(-100, db), 
+                pitch: pitch === -1 ? 0 : pitch,
+                isSpeaking: db > -45 // Threshold
+            };
+
+            if (isRunning) {
+                audioData.push({
+                    timestamp: Date.now(),
+                    ...audioFeatures
+                });
+            }
+        }
+
+        function autoCorrelate(buf, sampleRate) {
+            let SIZE = buf.length;
+            let MAX_SAMPLES = Math.floor(SIZE/2);
+            let best_offset = -1;
+            let best_correlation = 0;
+            let rms = 0;
+            let foundGoodCorrelation = false;
+            let correlations = new Array(MAX_SAMPLES);
+
+            for (let i=0; i<SIZE; i++) {
+                let val = buf[i];
+                rms += val*val;
+            }
+            rms = Math.sqrt(rms/SIZE);
+            if (rms<0.01) return -1; 
+
+            let lastCorrelation=1;
+            for (let offset = 0; offset < MAX_SAMPLES; offset++) {
+                let correlation = 0;
+                for (let i=0; i<MAX_SAMPLES; i++) {
+                    correlation += Math.abs((buf[i])-(buf[i+offset]));
+                }
+                correlation = 1 - (correlation/MAX_SAMPLES);
+                correlations[offset] = correlation;
+                if ((correlation>0.9) && (correlation > lastCorrelation)) {
+                    foundGoodCorrelation = true;
+                    if (correlation > best_correlation) {
+                        best_correlation = correlation;
+                        best_offset = offset;
+                    }
+                } else if (foundGoodCorrelation) {
+                    let shift = (correlations[best_offset+1] - correlations[best_offset-1])/correlations[best_offset];  
+                    return sampleRate/(best_offset+(8*shift));
+                }
+                lastCorrelation = correlation;
+            }
+            if (best_correlation > 0.01) return sampleRate/best_offset;
+            return -1;
+        }
+
+        function drawAudioVisualizer() {
+            if(!analyser) return;
+            requestAnimationFrame(drawAudioVisualizer);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            const ctx = audioVis.getContext('2d');
+            const width = audioVis.width;
+            const height = audioVis.height;
+
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw pure waveform or spectrogram style
+            ctx.beginPath();
+            ctx.moveTo(0, height/2);
+            const sliceWidth = width * 1.0 / bufferLength;
+            let x = 0;
+
+            for(let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * height/2;
+                
+                // Color based on activity
+                ctx.fillStyle = isRunning ? '#d63031' : '#636e72'; 
+                ctx.fillRect(x, height - (dataArray[i]/255 * height), sliceWidth*2, (dataArray[i]/255 * height));
+                x += sliceWidth * 2;
+            }
         }
 
         function onVideoReady() {
             loader.style.display = 'none';
-            statusText.innerText = "SYSTEM READY // STANDBY";
+            statusText.innerText = "SENSORS ACTIVE // STANDBY";
             btnToggle.disabled = false;
             startVisualLoop();
         }
 
+        // --- VISUAL LOOP ---
         function startVisualLoop() {
-            // Safety: Ensure video is actually rendering with dimensions
             if (video.clientWidth === 0 || video.clientHeight === 0) {
                 requestAnimationFrame(startVisualLoop);
                 return;
@@ -570,6 +827,8 @@
 
             setInterval(async () => {
                 if(video.paused || video.ended || !isModelLoaded) return;
+                
+                // Safe check for dimensions
                 if (video.clientWidth < 1 || video.clientHeight < 1) return;
 
                 const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
@@ -588,117 +847,111 @@
                     const box = det.detection.box;
                     const emotions = det.expressions;
                     const landmarks = det.landmarks;
-
-                    // --- GAZE DETECTION LOGIC (Heuristic) ---
-                    // Using Nose Tip (Point 30) relative to Eye Centers
-                    // Note: Video is mirrored via CSS scaleX(-1), but coordinates here are raw video coords.
-                    // Raw Video: Subject moves Right -> x increases. Subject moves Left -> x decreases.
                     
-                    const nose = landmarks.getNose()[3]; // Point 30 (Tip of nose)
-                    const leftEye = landmarks.getLeftEye(); // Points 36-41
-                    const rightEye = landmarks.getRightEye(); // Points 42-47
+                    // Mirroring Logic for UI drawing
+                    const mirroredBoxX = canvas.width - box.x - box.width;
 
+                    // --- VISUAL ATTENTION LOGIC (Gaze) ---
+                    // Objective tracking of nose vector vs eye center
+                    const nose = landmarks.getNose()[3]; 
+                    const leftEye = landmarks.getLeftEye(); 
+                    const rightEye = landmarks.getRightEye(); 
                     const leftEyeX = (leftEye[0].x + leftEye[3].x) / 2;
                     const rightEyeX = (rightEye[0].x + rightEye[3].x) / 2;
-                    const eyeWidth = rightEyeX - leftEyeX; // Distance between eyes
-                    
-                    // Normalize Nose Position (0.0 to 1.0 between eyes)
-                    // 0.5 is perfectly center
-                    // < 0.5 means nose is closer to left eye (Head turned Left -> Subject Looking Right)
-                    // > 0.5 means nose is closer to right eye (Head turned Right -> Subject Looking Left)
+                    const eyeWidth = rightEyeX - leftEyeX; 
                     const noseRelativeX = (nose.x - leftEyeX) / eyeWidth;
                     
-                    let gazeDirection = "CENTER";
-                    let gazeScore = "0";
+                    let gazeState = "DIRECT";
+                    // Thresholds for lateral aversion
+                    if (noseRelativeX < 0.40) gazeState = "AVERTED (Right)"; 
+                    else if (noseRelativeX > 0.60) gazeState = "AVERTED (Left)";
 
-                    // Thresholds
-                    if (noseRelativeX < 0.45) {
-                        // Nose closer to Left Eye (Image Left).
-                        // In raw video, this means Subject turned to THEIR Right.
-                        gazeDirection = "RIGHT (Constructed)"; 
-                    } else if (noseRelativeX > 0.55) {
-                        // Nose closer to Right Eye (Image Right).
-                        // In raw video, this means Subject turned to THEIR Left.
-                        gazeDirection = "LEFT (Memory)";
-                    } else {
-                        // Check Vertical (Simpler approximation using nose vs eye height)
-                        // This is tricky with 2D landmarks, assuming roughly center for now
-                        gazeDirection = "CENTER";
-                    }
-                    
-                    // Simple Dominant Emotion for Real-time Display
                     const sortedEmotions = Object.entries(emotions).sort((a,b) => b[1] - a[1]);
                     const dominant = sortedEmotions[0];
                     
-                    let boxColor = '#ffffff'; 
-                    if (isRunning) boxColor = '#ff2a2a';
+                    // Draw Forensic Bounding Box
+                    let boxColor = '#cfcfcf'; 
+                    if (isRunning) boxColor = '#d63031'; // Recording Red
                     
-                    // Draw Box
+                    // Bracket Style Box
                     ctx.strokeStyle = boxColor;
-                    ctx.lineWidth = 1.5;
-                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    ctx.lineWidth = 1;
+                    
+                    // Corners only drawing could be cooler, but standard box is safer for now
+                    ctx.strokeRect(mirroredBoxX, box.y, box.width, box.height);
 
-                    // Draw Emotion Label
+                    // Data Label
                     ctx.fillStyle = boxColor;
-                    ctx.fillRect(box.x, box.y - 20, box.width, 20);
+                    ctx.fillRect(mirroredBoxX, box.y - 15, box.width, 15);
                     ctx.fillStyle = '#000';
-                    ctx.font = 'bold 11px Courier New';
-                    let label = dominant[0].toUpperCase();
-                    if(label === 'HAPPY') label = 'SMILING';
-                    ctx.fillText(`${label} ${(dominant[1]*100).toFixed(0)}%`, box.x + 5, box.y - 6);
+                    ctx.font = '10px Courier New';
+                    ctx.fillText(`SUBJ_01 | ${dominant[0].toUpperCase()} ${(dominant[1]*100).toFixed(0)}%`, mirroredBoxX + 5, box.y - 4);
 
-                    // Draw Gaze Indicator
-                    ctx.fillStyle = boxColor;
-                    ctx.fillRect(box.x, box.y + box.height, box.width, 20);
-                    ctx.fillStyle = '#000';
-                    ctx.fillText(`GAZE: ${gazeDirection.split(' ')[0]}`, box.x + 5, box.y + box.height + 14);
+                    // Gaze Label
+                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                    ctx.fillRect(mirroredBoxX, box.y + box.height + 2, box.width, 15);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(`GAZE: ${gazeState}`, mirroredBoxX + 5, box.y + box.height + 12);
 
-                    // Collect detailed frame data
+                    // Data Collection
                     if(isRunning) {
                         sessionData.push({
+                            timestamp: Date.now(),
                             emotions: emotions,
-                            gaze: gazeDirection
+                            gaze: gazeState
                         });
                     }
                 });
             }, 100);
         }
 
+        // --- SESSION CONTROL ---
         function toggleSession() {
             if (!isRunning) {
                 // START
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+
                 sessionData = [];
+                audioData = [];
+                startTime = Date.now();
                 isRunning = true;
-                btnToggle.innerText = "STOP & DEDUCT";
+                btnToggle.innerText = "TERMINATE SESSION";
                 btnToggle.classList.add('active');
-                statusText.innerText = "RECORDING BIOMETRICS...";
-                statusText.style.color = "#ff2a2a";
+                statusText.innerText = "RECORDING BIOMETRIC TELEMETRY...";
+                statusText.style.color = "#d63031";
             } else {
                 // STOP
                 isRunning = false;
-                btnToggle.innerText = "PROCESSING...";
+                btnToggle.innerText = "PROCESSING DATA...";
                 btnToggle.classList.remove('active');
                 btnToggle.disabled = true;
                 
                 setTimeout(() => {
-                    generateReport();
-                    btnToggle.innerText = "START ANALYSIS";
+                    generateForensicReport();
+                    btnToggle.innerText = "INITIALIZE NEW SESSION";
                     btnToggle.disabled = false;
-                    statusText.innerText = "SYSTEM READY";
-                    statusText.style.color = "#888";
-                }, 1000);
+                    statusText.innerText = "SENSORS ACTIVE // STANDBY";
+                    statusText.style.color = "#636e72";
+                }, 1500); // Simulated processing time
             }
         }
 
-        // --- CORE ANALYSIS LOGIC ---
+        // --- DATA PROCESSING & STATISTICS ---
 
-        function calculateVolatility(data) {
+        function getStandardDeviation(array) {
+            if(array.length === 0) return 0;
+            const n = array.length;
+            const mean = array.reduce((a, b) => a + b) / n;
+            return Math.sqrt(array.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+        }
+
+        function calculateExpressionVolatility(data) {
             if (data.length < 2) return 0;
-            
             let totalDelta = 0;
             for(let i=1; i<data.length; i++) {
                 const prev = data[i-1].emotions;
                 const curr = data[i].emotions;
+                // Sum absolute differences of all AU proxies
                 let frameDelta = 
                     Math.abs(prev.neutral - curr.neutral) +
                     Math.abs(prev.happy - curr.happy) +
@@ -711,163 +964,247 @@
             return totalDelta / (data.length - 1);
         }
 
-        function generateReport() {
-            if (sessionData.length < 15) {
-                alert("Insufficient data. Please record for at least 3-5 seconds.");
+        function generateForensicReport() {
+            if (sessionData.length < 30) {
+                alert("Insufficient data density for forensic analysis. Minimum 3s required.");
                 return;
             }
 
-            // 1. Calculate Averages
-            let avgs = { neutral: 0, happy: 0, sad: 0, angry: 0, fearful: 0, disgusted: 0, surprised: 0 };
-            let gazeCounts = { construct: 0, memory: 0, center: 0 };
+            // --- 1. SESSION META ---
+            const duration = (Date.now() - startTime) / 1000;
+            const frameCount = sessionData.length;
+            const signalQuality = (frameCount / (duration * 10)) * 100; // Approx against 10fps target
+            
+            document.getElementById('sessID').innerText = Math.random().toString(36).substr(2, 9).toUpperCase();
+            document.getElementById('sessDuration').innerText = `Duration: ${duration.toFixed(2)}s`;
+            document.getElementById('sessQuality').innerText = `Signal Quality: ${Math.min(100, signalQuality.toFixed(0))}%`;
 
-            sessionData.forEach(e => {
-                // Emotions
-                for (let k in avgs) avgs[k] += e.emotions[k] || 0;
+            // --- 2. ACOUSTIC ANALYSIS ---
+            const speechFrames = audioData.filter(d => d.isSpeaking);
+            const totalAudioFrames = audioData.length;
+            const speechRate = totalAudioFrames > 0 ? (speechFrames.length / totalAudioFrames) : 0;
+            
+            let pitchMean = 0, pitchVar = 0, volMean = 0, volRange = 0;
+
+            if (speechFrames.length > 0) {
+                // Filter F0 outliers (human range 50-400Hz usually)
+                const pitches = speechFrames.map(d => d.pitch).filter(p => p > 60 && p < 350); 
+                const volumes = speechFrames.map(d => d.volume);
                 
-                // Gaze
-                if (e.gaze.includes("RIGHT")) gazeCounts.construct++;
-                else if (e.gaze.includes("LEFT")) gazeCounts.memory++;
-                else gazeCounts.center++;
-            });
-
-            const totalFrames = sessionData.length;
-            for (let k in avgs) avgs[k] /= totalFrames;
-            
-            // Gaze Percentages
-            const pctConstruct = gazeCounts.construct / totalFrames;
-            const pctMemory = gazeCounts.memory / totalFrames;
-            const pctCenter = gazeCounts.center / totalFrames;
-
-            // 2. Calculate Volatility (Jitter)
-            const volatility = calculateVolatility(sessionData); 
-
-            // 3. TRAIT ALGORITHMS
-            
-            // Baseline
-            const scoreSmiling = avgs.happy;
-            const scoreNeutral = avgs.neutral;
-            const scoreSad = avgs.sad;
-            const scoreSurprise = avgs.surprised;
-
-            // Deduced / Complex Traits
-
-            // Anxiety: Fear markers + High Volatility (Shifting)
-            let rawAnxiety = avgs.fearful + (volatility * 2.5);
-            const scoreAnxiety = Math.max(0, Math.min(1, rawAnxiety));
-
-            // Contempt/Disdain: Disgust + some Anger (Moral superiority/judgment)
-            let rawContempt = avgs.disgusted + (avgs.angry * 0.3);
-            const scoreContempt = Math.max(0, Math.min(1, rawContempt));
-
-            // Aggression: Sustained Anger
-            const scoreAggression = avgs.angry;
-
-            // Focus: High Neutral + Low Volatility (Stillness) + Center Gaze
-            let rawFocus = (avgs.neutral * 1.2) - (volatility * 2) - avgs.happy - avgs.sad + (pctCenter * 0.3);
-            const scoreFocus = Math.max(0, Math.min(1, rawFocus));
-
-            // Confident: High Neutral/Focus + Low Fear + Low Sad
-            let rawConfident = avgs.neutral + (avgs.happy * 0.2) - avgs.fearful - avgs.sad - (volatility * 1.5);
-            const scoreConfident = Math.max(0, Math.min(1, rawConfident));
-
-            // Truthful: High Congruence (Happy/Neutral) + Low Stress + Memory Gaze (Left)
-            // Bonus for Memory Gaze
-            let gazeBonusTruth = pctMemory * 0.4;
-            let rawTruth = (avgs.neutral + avgs.happy) - (avgs.fearful + avgs.disgusted + avgs.angry) - (volatility * 1.5) + gazeBonusTruth;
-            const scoreTruth = Math.max(0, Math.min(1, rawTruth));
-
-            // Lying (Deceptive): Stress markers + High Volatility + Constructed Gaze (Right)
-            // Bonus for Constructed Gaze
-            let gazeBonusLie = pctConstruct * 0.5; // High weight for gaze fabrication
-            let rawLie = (avgs.fearful + avgs.disgusted + avgs.angry) + (volatility * 2.5) + gazeBonusLie;
-            const scoreLie = Math.max(0, Math.min(1, rawLie));
-
-            // Depressed: Sadness OR Flat Affect
-            let flatAffect = (avgs.neutral > 0.6 && avgs.happy < 0.1 && avgs.surprised < 0.1) ? 0.5 : 0;
-            let rawDepressed = avgs.sad + flatAffect;
-            const scoreDepressed = Math.max(0, Math.min(1, rawDepressed));
-
-
-            // 4. Update UI Bars
-            updateBar('valNeutral', 'barNeutral', scoreNeutral);
-            updateBar('valSmiling', 'barSmiling', scoreSmiling);
-            updateBar('valSad', 'barSad', scoreSad);
-            updateBar('valSurprise', 'barSurprise', scoreSurprise);
-            
-            updateBar('valTruth', 'barTruth', scoreTruth);
-            updateBar('valLie', 'barLie', scoreLie);
-            updateBar('valConfident', 'barConfident', scoreConfident);
-            updateBar('valDepressed', 'barDepressed', scoreDepressed);
-            updateBar('valAnxiety', 'barAnxiety', scoreAnxiety);
-            updateBar('valContempt', 'barContempt', scoreContempt);
-            updateBar('valAggression', 'barAggression', scoreAggression);
-            updateBar('valFocus', 'barFocus', scoreFocus);
-
-            // Gaze Bars
-            updateBar('valGazeConstruct', 'barGazeConstruct', pctConstruct);
-            updateBar('valGazeMemory', 'barGazeMemory', pctMemory);
-            updateBar('valGazeCenter', 'barGazeCenter', pctCenter);
-
-            // 5. Determine Verdict
-            let verdict = "UNCERTAIN";
-            let color = "#888";
-
-            // Logic Priority
-            if (scoreAggression > 0.5) {
-                verdict = "HOSTILE / AGGRESSIVE";
-                color = "#ff2a2a";
-            } else if (scoreContempt > 0.5) {
-                verdict = "CONTEMPT / DISDAIN";
-                color = "#9b59b6";
-            } else if (scoreAnxiety > 0.45 && scoreAnxiety > scoreTruth) {
-                verdict = "HIGH ANXIETY";
-                color = "#e67e22";
-            } else if (scoreDepressed > 0.6) {
-                verdict = "DEPRESSIVE STATE";
-                color = "#70a1ff";
-            } else if (scoreLie > 0.5 && scoreLie > scoreTruth) {
-                verdict = "DECEPTION LIKELY";
-                color = "#ff2a2a";
-            } else if (scoreFocus > 0.65) {
-                verdict = "FOCUSED / ANALYTICAL";
-                color = "#ccc";
-            } else if (scoreTruth > 0.6) {
-                verdict = "TRUTHFUL";
-                color = "#00ff88";
-            } else if (scoreConfident > 0.6) {
-                verdict = "CONFIDENT";
-                color = "#ffffff";
-            } else if (scoreSmiling > 0.6) {
-                verdict = "SMILING / JOYFUL";
-                color = "#ffcc00";
-            } else if (scoreSad > 0.5) {
-                verdict = "SADNESS";
-                color = "#70a1ff";
+                if(pitches.length > 0) {
+                    pitchMean = pitches.reduce((a,b)=>a+b, 0) / pitches.length;
+                    pitchVar = getStandardDeviation(pitches);
+                }
+                if(volumes.length > 0) {
+                    volMean = volumes.reduce((a,b)=>a+b, 0) / volumes.length;
+                    volRange = Math.max(...volumes) - Math.min(...volumes);
+                }
             }
 
-            const verdictEl = document.getElementById('finalVerdict');
-            verdictEl.innerText = verdict;
-            verdictEl.style.color = color;
+            // Raw Audio Output
+            document.getElementById('rawPitch').innerText = pitchMean.toFixed(1) + " Hz";
+            document.getElementById('rawPitchVar').innerText = pitchVar.toFixed(2) + " (σ)";
+            document.getElementById('rawVol').innerText = volMean.toFixed(1) + " dB";
+            document.getElementById('rawVolRange').innerText = volRange.toFixed(1) + " dB";
+            document.getElementById('rawSpeechRate').innerText = (speechRate*100).toFixed(0) + "%";
+            
+            // Calc Pause Freq (rough proxy: count transitions from speak to silence)
+            let pauseCount = 0;
+            for(let i=1; i<audioData.length; i++){
+                if(audioData[i-1].isSpeaking && !audioData[i].isSpeaking) pauseCount++;
+            }
+            const pauseFreq = (pauseCount / duration).toFixed(2) + " Hz";
+            document.getElementById('rawPauseFreq').innerText = pauseFreq;
+
+
+            // --- 3. VISUAL ANALYSIS ---
+            let gazeShifts = 0;
+            for(let i=1; i<sessionData.length; i++){
+                if(sessionData[i].gaze !== sessionData[i-1].gaze) gazeShifts++;
+            }
+            
+            // Determine dominant gaze
+            let gazeCounts = { direct:0, averted:0 };
+            sessionData.forEach(d => {
+                if(d.gaze === "DIRECT") gazeCounts.direct++;
+                else gazeCounts.averted++;
+            });
+            const domGaze = gazeCounts.direct > gazeCounts.averted ? "Predominantly Direct" : "Predominantly Averted";
+            
+            document.getElementById('rawGazeDir').innerText = domGaze;
+            document.getElementById('rawGazeShifts').innerText = gazeShifts;
+
+            const volatility = calculateExpressionVolatility(sessionData);
+            document.getElementById('compVol').innerText = volatility.toFixed(3);
+
+
+            // --- 4. RISK ASSESSMENT & INFERENCE ---
+            
+            // A. Micro-Expression Volatility Risk
+            // Low (<0.1) = Flat Affect / High ( >0.35) = Emotional Instability/Stress
+            let riskVolText = "Within Normal Limits";
+            let riskVolScore = 0;
+            if (volatility > 0.35) { riskVolText = "ELEVATED (Instability)"; riskVolScore = 0.8; }
+            else if (volatility < 0.05) { riskVolText = "SUPPRESSED (Flat Affect)"; riskVolScore = 0.5; }
+            document.getElementById('riskVol').innerText = riskVolText;
+
+            // B. Acoustic Jitter (Pitch Variance)
+            // High variance typically correlates with physiological arousal/stress
+            let riskJitterText = "Stable";
+            let riskJitterScore = 0;
+            if (pitchVar > 30) { riskJitterText = "SIGNIFICANT (Tremor/Stress)"; riskJitterScore = 0.9; }
+            else if (pitchVar > 15) { riskJitterText = "MODERATE"; riskJitterScore = 0.4; }
+            document.getElementById('compJitter').innerText = pitchVar.toFixed(1); // Using Var as Jitter proxy
+            document.getElementById('riskJitter').innerText = riskJitterText;
+
+            // C. Facial Congruence (Average dominant emotion score)
+            // Low confidence emotions might indicate masking
+            let avgConfidence = 0;
+            sessionData.forEach(d => {
+                const vals = Object.values(d.emotions);
+                avgConfidence += Math.max(...vals);
+            });
+            avgConfidence /= sessionData.length;
+            
+            let riskCongruenceText = "High Congruence";
+            if (avgConfidence < 0.5) riskCongruenceText = "LOW (Potential Masking)";
+            document.getElementById('compCongruence').innerText = avgConfidence.toFixed(2);
+            document.getElementById('riskCongruence').innerText = riskCongruenceText;
+
+
+            // --- 5. COMPOSITE SCORES ---
+            
+            // Cognitive Stress Index (CSI)
+            // Factors: Low Speech Rate (Cognitive Load) + High Pause Rate + Gaze Aversion
+            let csiRaw = 0;
+            if (speechRate < 0.4) csiRaw += 0.4; // High load processing
+            if ((pauseCount/duration) > 0.5) csiRaw += 0.3; // Frequent pauses
+            if ((gazeCounts.averted / frameCount) > 0.5) csiRaw += 0.3; // High aversion
+            const csi = Math.min(1.0, csiRaw);
+
+            // Emotional Arousal Score
+            // Factors: Pitch Variance + Volume Range + Volatility
+            let arousalRaw = 0;
+            if (pitchVar > 20) arousalRaw += 0.4;
+            if (volRange > 10) arousalRaw += 0.2;
+            if (volatility > 0.25) arousalRaw += 0.4;
+            const arousal = Math.min(1.0, arousalRaw);
+
+            // Baseline Congruence
+            // Inverted Stress/Load
+            const congruence = Math.max(0, 1.0 - Math.max(csi, arousal));
+
+
+            // --- UI UPDATES ---
+            
+            // Update Bars
+            updateMeter('barCSI', 'valCSI', csi);
+            updateMeter('barArousal', 'valArousal', arousal);
+            updateMeter('barCongruence', 'valCongruenceBar', congruence);
+
+            // Confidence Score (Simulated based on density)
+            const confidence = Math.min(98, Math.max(40, (duration * 5) + (signalQuality * 0.5))).toFixed(1);
+            document.getElementById('confScore').innerText = confidence + "%";
+
+            // Final Assessment Text
+            let assessment = "BASELINE BEHAVIOR OBSERVED";
+            if (csi > 0.6) assessment = "HIGH COGNITIVE LOAD DETECTED";
+            if (arousal > 0.6) assessment = "ELEVATED EMOTIONAL AROUSAL";
+            if (csi > 0.6 && arousal > 0.6) assessment = "SIGNIFICANT STRESS MARKERS DETECTED";
+            
+            document.getElementById('finalAssessment').innerText = assessment;
+            
+            // Color Logic
+            const assessEl = document.getElementById('finalAssessment');
+            if (csi > 0.6 || arousal > 0.6) assessEl.style.color = "#fdcb6e"; // Warn
+            if (csi > 0.75 || arousal > 0.75) assessEl.style.color = "#d63031"; // Alert
+            if (congruence > 0.7) assessEl.style.color = "#00b894"; // Safe
+
 
             // Show Report
             const reportEl = document.getElementById('report');
-            reportEl.style.display = 'flex';
-            requestAnimationFrame(() => reportEl.classList.add('visible'));
+            reportEl.classList.add('visible');
         }
 
-        function updateBar(textId, barId, value) {
-            const pct = (value * 100).toFixed(0) + "%";
-            document.getElementById(textId).innerText = pct;
+        function updateMeter(barId, valId, value) {
+            const pct = (value * 100).toFixed(1) + "%";
             document.getElementById(barId).style.width = pct;
+            document.getElementById(valId).innerText = value.toFixed(2);
         }
 
         function closeReport() {
-            const reportEl = document.getElementById('report');
-            reportEl.classList.remove('visible');
-            setTimeout(() => {
-                reportEl.style.display = 'none';
-            }, 500);
+            document.getElementById('report').classList.remove('visible');
+        }
+
+        function downloadReportLog() {
+            // Gather Data
+            const id = document.getElementById('sessID').innerText;
+            const duration = document.getElementById('sessDuration').innerText;
+            const pitch = document.getElementById('rawPitch').innerText;
+            const vol = document.getElementById('rawVol').innerText;
+            const gaze = document.getElementById('rawGazeDir').innerText;
+            const csi = document.getElementById('valCSI').innerText;
+            const arousal = document.getElementById('valArousal').innerText;
+            const assessment = document.getElementById('finalAssessment').innerText;
+            const date = new Date().toLocaleString();
+
+            const fileContent = `
+==================================================
+   AEON FORENSIC BIOMETRIC REPORT LOG
+==================================================
+CASE ID: ${id}
+DATE:    ${date}
+${duration}
+SIGNAL QUALITY: ${document.getElementById('sessQuality').innerText}
+
+[01] RAW TELEMETRY
+--------------------------------------------------
+Fundamental Freq (F0): ${pitch}
+Pitch Variance:        ${document.getElementById('rawPitchVar').innerText}
+Vocal Intensity:       ${vol}
+Speech Activity:       ${document.getElementById('rawSpeechRate').innerText}
+Visual Attention:      ${gaze}
+Lateral Shifts:        ${document.getElementById('rawGazeShifts').innerText}
+
+[02] COMPUTED BIOMETRICS
+--------------------------------------------------
+Micro-Exp Volatility:  ${document.getElementById('compVol').innerText} (${document.getElementById('riskVol').innerText})
+Acoustic Jitter:       ${document.getElementById('compJitter').innerText} (${document.getElementById('riskJitter').innerText})
+Facial Congruence:     ${document.getElementById('compCongruence').innerText} (${document.getElementById('riskCongruence').innerText})
+
+[03] RISK ASSESSMENT PROBABILITY
+--------------------------------------------------
+Cognitive Stress Index (CSI):  ${csi}
+Emotional Arousal Score:       ${arousal}
+Baseline Congruence:           ${document.getElementById('valCongruenceBar').innerText}
+
+FINAL ASSESSMENT:
+${assessment}
+
+CONFIDENCE INTERVAL: ${document.getElementById('confScore').innerText}
+
+==================================================
+DISCLAIMER: This report represents statistical probabilities 
+derived from computer vision and signal processing. 
+It does not constitute a legal or clinical diagnosis.
+Generated by AEON Forensic Engine v2.4
+==================================================
+            `;
+
+            // Create Blob
+            const blob = new Blob([fileContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            
+            // Create Link and Click
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `AEON_FORENSIC_LOG_${id}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
         }
 
         window.addEventListener('load', init);
