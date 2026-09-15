@@ -3,756 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AEON // Forensic Biometric Interface</title>
-    <!-- Load Face-API.js from CDN -->
+    <meta name="description" content="AEON is an experimental browser interface for observing camera, facial landmark, expression model, and microphone signals without inferring intent, deception, personality, or psychological state.">
+    <title>AEON / Signal Observation Interface</title>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         :root {
-            --bg-color: #050505;
-            --text-primary: #cfcfcf;
-            --text-secondary: #707070;
-            --accent-color: #e0e0e0;
-            --alert-color: #d63031;
-            --safe-color: #00b894;
-            --warn-color: #fdcb6e;
-            --neutral-color: #636e72;
-            --panel-bg: rgba(15, 15, 15, 0.98);
-            --border-color: #2d3436;
-            --font-mono: 'Courier New', Courier, monospace;
+            --bg: #050505;
+            --panel: rgba(11, 11, 11, 0.97);
+            --line: #2b2b2b;
+            --text: #d5d5d5;
+            --muted: #777;
+            --live: #e5e5e5;
+            --record: #c63d3d;
+            --signal: #b9b9b9;
+            --font-mono: "Courier New", Courier, monospace;
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body { width: 100%; height: 100%; margin: 0; }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Helvetica, Arial, sans-serif;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            height: 100dvh; /* Dynamic viewport height for mobile browsers */
-            overflow: hidden;
-            -webkit-font-smoothing: antialiased;
         }
 
-        /* Forensic Header */
         header {
-            width: 100%;
-            height: 60px;
-            padding: 0 20px;
+            height: 58px;
+            flex: 0 0 58px;
+            border-bottom: 1px solid var(--line);
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
+            justify-content: space-between;
+            padding: 0 20px;
             background: #080808;
-            z-index: 20;
-            flex-shrink: 0;
         }
 
         h1 {
-            font-size: 0.9rem;
-            font-weight: 500;
-            letter-spacing: 2px;
-            text-transform: uppercase;
             margin: 0;
-            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            font-weight: 400;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
         }
 
-        .status {
+        #statusText {
             font-family: var(--font-mono);
-            font-size: 0.65rem;
-            color: var(--neutral-color);
+            font-size: 0.62rem;
             letter-spacing: 1px;
+            color: var(--muted);
             text-align: right;
         }
 
-        /* Footer */
-        footer {
-            position: absolute;
-            bottom: 5px;
-            width: 100%;
-            text-align: center;
-            font-size: 0.5rem;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            z-index: 15;
-            pointer-events: none;
-        }
-
-        /* Main Viewport */
         #viewport {
             position: relative;
-            width: 100%;
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #020202;
+            flex: 1 1 auto;
+            min-height: 0;
             overflow: hidden;
+            background: #020202;
         }
 
-        /* Feed Container */
-        .feed-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        video {
+        #video, #overlay {
             position: absolute;
+            inset: 0;
+            margin: auto;
             max-width: 100%;
             max-height: 100%;
             width: auto;
             height: auto;
             object-fit: contain;
-            filter: grayscale(80%) contrast(1.1) brightness(0.9);
-            transform: scaleX(-1);
         }
 
-        canvas {
-            position: absolute;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+        #video {
+            transform: scaleX(-1);
+            filter: grayscale(75%) contrast(1.08) brightness(0.9);
         }
-        
-        /* Spectrogram / Waveform Canvas */
+
+        #overlay { pointer-events: none; }
+
         #audioVis {
             position: absolute;
-            bottom: 90px; /* Above controls */
             left: 50%;
+            bottom: 86px;
             transform: translateX(-50%);
-            width: 80%;
-            max-width: 500px;
-            height: 40px;
-            z-index: 12;
-            opacity: 0.8;
+            width: min(760px, 86vw);
+            height: 44px;
+            border-top: 1px solid #1d1d1d;
+            border-bottom: 1px solid #1d1d1d;
+            opacity: 0.85;
             pointer-events: none;
-            border-top: 1px solid #222;
-            border-bottom: 1px solid #222;
         }
 
-        /* Controls */
+        #loader {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: #020202;
+        }
+
+        .loader-ring {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #292929;
+            border-top-color: #d8d8d8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #loaderText, #errorMsg {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            letter-spacing: 1.2px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        #errorMsg { display: none; color: #c85b5b; padding: 20px; text-align: center; }
+
         .controls {
             position: absolute;
-            bottom: 30px;
             left: 50%;
+            bottom: 26px;
             transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-            z-index: 30;
-            width: 90%;
-            justify-content: center;
+            z-index: 20;
         }
 
         button {
-            background: rgba(0,0,0,0.85);
-            border: 1px solid var(--text-secondary);
-            color: var(--text-primary);
-            padding: 14px 24px;
+            min-width: 190px;
+            padding: 13px 20px;
+            border: 1px solid #777;
+            background: rgba(3, 3, 3, 0.88);
+            color: var(--text);
             font-family: var(--font-mono);
-            font-size: 0.75rem;
-            letter-spacing: 1px;
+            font-size: 0.7rem;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
             cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-            min-width: 140px;
-            backdrop-filter: blur(4px);
         }
 
-        button:hover {
-            border-color: var(--accent-color);
-            background: rgba(40,40,40,0.9);
-        }
+        button:hover { border-color: #ddd; }
+        button:disabled { opacity: 0.35; cursor: not-allowed; }
+        button.active { border-color: var(--record); color: #ef8d8d; }
 
-        button.active {
-            border-color: var(--alert-color);
-            color: var(--alert-color);
-            background: rgba(40,10,10,0.9);
-            box-shadow: 0 0 15px rgba(214, 48, 49, 0.2);
-        }
-
-        button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            border-color: #333;
-        }
-
-        /* Loader */
-        #loader {
+        footer {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #020202;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 50;
-        }
-        
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 1px solid #333;
-            border-top: 1px solid #fff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        .loader-text {
+            right: 14px;
+            bottom: 8px;
+            z-index: 4;
             font-family: var(--font-mono);
-            font-size: 0.75rem;
-            color: #666;
+            font-size: 0.48rem;
+            letter-spacing: 1px;
+            color: #3f3f3f;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            pointer-events: none;
         }
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Forensic Report Modal */
         #report {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(5, 5, 5, 0.98);
+            inset: 0;
             z-index: 100;
-            justify-content: center;
-            align-items: flex-start;
-            padding-top: 5vh;
-            padding-bottom: 5vh;
-            backdrop-filter: blur(5px);
+            background: rgba(5, 5, 5, 0.985);
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            padding: 5vh 4vw;
         }
 
-        #report.visible {
-            display: flex;
-        }
+        #report.visible { display: block; }
 
-        .report-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            width: 95%; /* Mobile friendly width */
-            max-width: 900px; /* Desktop constraint */
-            padding: 30px 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        .report-shell {
+            max-width: 920px;
+            margin: 0 auto;
             font-family: var(--font-mono);
-            margin: auto 0; /* Center vertically if short */
         }
 
-        .report-header {
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-direction: row;
+        .report-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 24px;
+            align-items: end;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line);
         }
 
         .report-title {
             font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-primary);
+            letter-spacing: 1.4px;
             text-transform: uppercase;
-            line-height: 1.2;
         }
 
         .report-meta {
-            font-size: 0.6rem;
-            color: var(--text-secondary);
+            font-size: 0.62rem;
+            line-height: 1.6;
+            color: var(--muted);
             text-align: right;
-            line-height: 1.4;
-            min-width: 90px;
         }
 
-        /* Analysis Sections */
-        .section-title {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-            margin-top: 25px;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .section-title:first-child { margin-top: 0; }
-
-        .data-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Responsive columns */
-            gap: 15px;
+        .trace-section {
+            margin-top: 28px;
+            border-top: 1px solid #1d1d1d;
         }
 
-        .data-box {
-            background: rgba(255,255,255,0.02);
-            padding: 10px;
-            border-left: 2px solid #333;
-        }
-
-        .data-label {
-            font-size: 0.55rem;
-            color: #888;
-            display: block;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-        }
-
-        .data-value {
-            font-size: 0.9rem;
-            color: #eee;
+        .trace-section h2 {
+            margin: 0;
+            padding: 10px 0 9px;
+            font-size: 0.64rem;
             font-weight: 400;
+            letter-spacing: 1.2px;
+            color: var(--muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid #1d1d1d;
         }
 
-        .data-sub {
-            font-size: 0.55rem;
-            color: #555;
-            margin-top: 4px;
+        .trace-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 0.8fr) 1fr;
+            gap: 20px;
+            padding: 11px 0;
+            border-bottom: 1px solid #141414;
         }
 
-        /* Risk Meters */
-        .risk-container {
-            margin-top: 8px;
-        }
-        .risk-track {
-            width: 100%;
-            height: 4px;
-            background: #222;
-            position: relative;
-        }
-        .risk-fill {
-            height: 100%;
-            background: #666;
-            width: 0%;
-            transition: width 1s ease;
+        .trace-label {
+            font-size: 0.58rem;
+            letter-spacing: 0.8px;
+            color: #777;
+            text-transform: uppercase;
         }
 
-        /* Acoustic Table */
-        .forensic-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.65rem;
+        .trace-value {
+            font-size: 0.75rem;
+            color: #d8d8d8;
+            text-align: right;
         }
-        .forensic-table th {
-            text-align: left;
-            color: #666;
-            font-weight: normal;
-            padding: 8px 5px;
+
+        .limits {
+            margin-top: 28px;
+            padding: 15px 0;
+            border-top: 1px solid #333;
             border-bottom: 1px solid #333;
-        }
-        .forensic-table td {
-            padding: 8px 5px;
-            border-bottom: 1px solid #222;
-            color: #aaa;
-        }
-        .forensic-table tr:last-child td { border-bottom: none; }
-
-        .disclaimer-box {
-            margin-top: 30px;
-            padding: 15px;
-            border: 1px solid #333;
-            background: #0a0a0a;
-            font-size: 0.55rem;
-            color: #555;
-            line-height: 1.5;
+            color: #787878;
+            font-size: 0.58rem;
+            line-height: 1.7;
         }
 
-        /* Assessment Summary */
-        .assessment-box {
-            margin-top: 25px;
-            padding: 15px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid #333;
-        }
-        .assessment-main {
-            font-size: 1rem;
-            color: #fff;
-            margin-bottom: 5px;
-            font-weight: 700;
-        }
-        .assessment-conf {
-            font-size: 0.65rem;
-            color: var(--text-secondary);
-        }
+        .limits strong { color: #bdbdbd; font-weight: 400; }
 
-        /* Action Buttons */
         .action-row {
-            margin-top: 20px;
             display: flex;
             gap: 10px;
-            flex-direction: row;
-        }
-        
-        .action-row button {
-            flex: 1;
-            padding: 12px;
-            font-size: 0.7rem;
+            margin-top: 22px;
         }
 
-        .btn-save {
-            border-color: var(--accent-color);
-            background: rgba(200, 200, 200, 0.1);
-        }
-        .btn-close {
-            border-color: #444;
-            background: transparent;
-            color: #666;
-        }
+        .action-row button { flex: 1; }
 
-        .error-msg {
-            color: var(--alert-color);
-            text-align: center;
-            display: none;
-            font-family: var(--font-mono);
-            font-size: 0.8rem;
-            padding: 20px;
-            max-width: 80%;
+        @media (max-width: 640px) {
+            header { height: 50px; flex-basis: 50px; padding: 0 14px; }
+            h1 { font-size: 0.72rem; }
+            #statusText { font-size: 0.55rem; }
+            #audioVis { bottom: 78px; width: 92vw; }
+            .controls { bottom: 20px; }
+            button { min-width: 170px; padding: 14px 16px; }
+            #report { padding: 0; }
+            .report-shell { padding: 20px 16px 28px; }
+            .report-head { grid-template-columns: 1fr; align-items: start; }
+            .report-meta { text-align: left; }
+            .trace-row { grid-template-columns: 1fr; gap: 5px; }
+            .trace-value { text-align: left; }
+            .action-row { flex-direction: column; }
         }
 
-        /* MEDIA QUERIES FOR MOBILE */
-        @media (max-width: 600px) {
-            header {
-                padding: 0 15px;
-                height: 50px;
-            }
-            h1 { font-size: 0.8rem; }
-            .status { font-size: 0.6rem; }
-            
-            .controls {
-                bottom: 20px;
-                width: 100%;
-                padding: 0 15px;
-            }
-            
-            #audioVis {
-                bottom: 80px;
-                width: 90%;
-            }
-
-            .report-card {
-                padding: 20px 15px;
-                width: 100%;
-                min-height: 100%;
-                margin: 0;
-                border: none;
-            }
-
-            .action-row {
-                flex-direction: column;
-            }
-            
-            .action-row button {
-                width: 100%;
-                padding: 15px; /* Larger touch target */
-            }
-        }
-
-        /* Print Styles */
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #report, #report * {
-                visibility: visible;
-            }
-            #report {
-                position: absolute;
-                left: 0;
-                top: 0;
-                background: white;
-                color: black;
-                overflow: visible;
-                display: block;
-                padding: 0;
-            }
-            .report-card {
-                width: 100%;
-                max-width: 100%;
-                box-shadow: none;
-                border: none;
-                background: white;
-                color: black;
-                padding: 0;
-                margin: 0;
-            }
-            .action-row, button {
-                display: none;
-            }
-            :root {
-                --text-primary: #000;
-                --text-secondary: #333;
-                --border-color: #ccc;
-            }
-            .data-box, .assessment-box, .disclaimer-box {
-                background: #f9f9f9;
-                border-color: #ddd;
-                color: black;
-            }
-            .data-label, .data-sub, .report-meta {
-                color: #444;
-            }
-            .risk-track { background: #eee; }
+            body > *:not(#report) { display: none !important; }
+            #report { display: block !important; position: static; background: white; color: black; padding: 0; }
+            .report-shell { max-width: none; }
+            .action-row { display: none; }
+            .trace-value, .report-title { color: black; }
+            .trace-label, .report-meta, .limits { color: #444; }
         }
-
     </style>
 </head>
 <body>
-
     <header>
-        <h1>AEON // Forensic Biometric System</h1>
-        <div class="status" id="statusText">INITIALIZING SENSORS...</div>
+        <h1>AEON / Signal Observation</h1>
+        <div id="statusText">INITIALIZING CAMERA + MIC</div>
     </header>
 
-    <div id="viewport">
+    <main id="viewport">
         <div id="loader">
-            <div class="spinner"></div>
-            <div class="loader-text" id="loaderText">Loading Neural Networks</div>
-            <div class="error-msg" id="errorMsg">
-                Sensor Error: Camera/Mic Access Denied.
-            </div>
+            <div class="loader-ring"></div>
+            <div id="loaderText">Loading face models</div>
+            <div id="errorMsg"></div>
         </div>
-        
-        <div class="feed-container">
-            <video id="video" muted playsinline></video>
-            <canvas id="overlay"></canvas>
-            <canvas id="audioVis"></canvas>
-        </div>
-        
+
+        <video id="video" muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <canvas id="audioVis"></canvas>
+
         <div class="controls">
-            <button id="btnToggle" onclick="toggleSession()" disabled>Initialize Session</button>
+            <button id="btnToggle" onclick="toggleSession()" disabled>Begin observation</button>
         </div>
-    </div>
 
-    <footer>
-        Apex Innovate LLC
-    </footer>
+        <footer>Joe Nasr / experimental signal interface</footer>
+    </main>
 
-    <!-- Forensic Report Overlay -->
-    <div id="report">
-        <div class="report-card">
-            
-            <div class="report-header">
-                <div>
-                    <div class="report-title">Biometric Analysis Report</div>
-                    <div style="font-size:0.7rem; color:#666; margin-top:5px;">ID: <span id="sessID">--</span></div>
-                </div>
+    <section id="report" aria-label="Session trace">
+        <div class="report-shell">
+            <div class="report-head">
+                <div class="report-title">AEON / Session Trace</div>
                 <div class="report-meta">
-                    <span id="sessDuration">Duration: --s</span><br>
-                    <span id="sessQuality">Signal Quality: --</span>
+                    <span id="sessID">Session: none</span><br>
+                    <span id="sessDuration">Duration: 0 s</span><br>
+                    <span id="sessFrames">Frames: 0</span>
                 </div>
             </div>
 
-            <!-- SECTION 1: RAW TELEMETRY -->
-            <div class="section-title">
-                <span>01 // Raw Telemetry (Acoustic & Visual)</span>
-                <span>Type: Observable</span>
-            </div>
-            
-            <div class="data-grid">
-                <div class="data-box">
-                    <span class="data-label">Fundamental Freq (F0)</span>
-                    <span class="data-value" id="rawPitch">-- Hz</span>
-                    <div class="data-sub">Mean Variance: <span id="rawPitchVar">--</span></div>
-                </div>
-                <div class="data-box">
-                    <span class="data-label">Vocal Intensity</span>
-                    <span class="data-value" id="rawVol">-- dB</span>
-                    <div class="data-sub">Dynamic Range: <span id="rawVolRange">--</span></div>
-                </div>
-                <div class="data-box">
-                    <span class="data-label">Speech Activity</span>
-                    <span class="data-value" id="rawSpeechRate">--%</span>
-                    <div class="data-sub">Pause Frequency: <span id="rawPauseFreq">--</span></div>
-                </div>
-                <div class="data-box">
-                    <span class="data-label">Visual Attention</span>
-                    <span class="data-value" id="rawGazeDir">Direct</span>
-                    <div class="data-sub">Lateral Shifts: <span id="rawGazeShifts">--</span></div>
-                </div>
+            <div class="trace-section">
+                <h2>Camera model output</h2>
+                <div class="trace-row"><span class="trace-label">Dominant expression model label</span><span class="trace-value" id="exprLabel">none</span></div>
+                <div class="trace-row"><span class="trace-label">Mean top label probability</span><span class="trace-value" id="exprProb">0</span></div>
+                <div class="trace-row"><span class="trace-label">Expression score variability</span><span class="trace-value" id="exprVar">0</span></div>
+                <div class="trace-row"><span class="trace-label">Horizontal head orientation proxy</span><span class="trace-value" id="orientation">none</span></div>
+                <div class="trace-row"><span class="trace-label">Orientation state changes</span><span class="trace-value" id="orientationChanges">0</span></div>
             </div>
 
-            <!-- SECTION 2: COMPUTED METRICS -->
-            <div class="section-title">
-                <span>02 // Computed Biometric Indices</span>
-                <span>Type: Statistical Inference</span>
+            <div class="trace-section">
+                <h2>Microphone signal</h2>
+                <div class="trace-row"><span class="trace-label">Mean estimated fundamental frequency</span><span class="trace-value" id="pitchMean">0 Hz</span></div>
+                <div class="trace-row"><span class="trace-label">Pitch standard deviation</span><span class="trace-value" id="pitchSd">0 Hz</span></div>
+                <div class="trace-row"><span class="trace-label">Mean signal level</span><span class="trace-value" id="levelMean">0 dBFS</span></div>
+                <div class="trace-row"><span class="trace-label">Signal level range</span><span class="trace-value" id="levelRange">0 dB</span></div>
+                <div class="trace-row"><span class="trace-label">Frames above speech threshold</span><span class="trace-value" id="speechShare">0%</span></div>
             </div>
 
-            <table class="forensic-table">
-                <thead>
-                    <tr>
-                        <th>Metric</th>
-                        <th>Measurement</th>
-                        <th>Reference Range (Baseline)</th>
-                        <th>Risk Assessment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Micro-Expression Volatility</td>
-                        <td id="compVol">--</td>
-                        <td>0.1 - 0.3 (Stable)</td>
-                        <td id="riskVol">--</td>
-                    </tr>
-                    <tr>
-                        <td>Acoustic Jitter (Stress Proxy)</td>
-                        <td id="compJitter">--</td>
-                        <td>&lt; 1.5%</td>
-                        <td id="riskJitter">--</td>
-                    </tr>
-                    <tr>
-                        <td>Facial Congruence</td>
-                        <td id="compCongruence">--</td>
-                        <td>High (>0.7)</td>
-                        <td id="riskCongruence">--</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- SECTION 3: PROBABILISTIC INFERENCE -->
-            <div class="section-title">
-                <span>03 // Probabilistic State Assessment</span>
-                <span>Type: Experimental / Heuristic</span>
-            </div>
-
-            <div class="assessment-box">
-                <div class="assessment-main" id="finalAssessment">PENDING ANALYSIS</div>
-                <div class="assessment-conf">Confidence Interval: <span id="confScore">--%</span> (Based on signal density)</div>
-            </div>
-
-            <div class="data-grid" style="margin-top:20px;">
-                <div class="data-box" style="border-left-color: var(--warn-color);">
-                    <span class="data-label">Cognitive Stress Index (CSI)</span>
-                    <div class="risk-container">
-                        <div class="risk-track"><div class="risk-fill" id="barCSI" style="background:var(--warn-color);"></div></div>
-                    </div>
-                    <div class="data-sub" style="text-align:right;" id="valCSI">0.0</div>
-                </div>
-                
-                <div class="data-box" style="border-left-color: var(--alert-color);">
-                    <span class="data-label">Emotional Arousal Score</span>
-                    <div class="risk-container">
-                        <div class="risk-track"><div class="risk-fill" id="barArousal" style="background:var(--alert-color);"></div></div>
-                    </div>
-                    <div class="data-sub" style="text-align:right;" id="valArousal">0.0</div>
-                </div>
-
-                <div class="data-box" style="border-left-color: var(--safe-color);">
-                    <span class="data-label">Baseline Congruence</span>
-                    <div class="risk-container">
-                        <div class="risk-track"><div class="risk-fill" id="barCongruence" style="background:var(--safe-color);"></div></div>
-                    </div>
-                    <div class="data-sub" style="text-align:right;" id="valCongruenceBar">0.0</div>
-                </div>
-            </div>
-
-            <div class="disclaimer-box">
-                <strong>METHODOLOGICAL LIMITATIONS & DISCLOSURE</strong><br>
-                1. <strong>Probabilistic Nature:</strong> All metrics (CSI, Arousal) are statistical probabilities derived from computer vision and signal processing. They represent physiological states, not psychological intent.<br>
-                2. <strong>No Lie Detection:</strong> "Deception" is a complex cognitive intent that cannot be definitively detected by biometrics alone. This system detects <em>stress markers</em> and <em>cognitive load</em> which may correlate with deception but also with anxiety, fatigue, or concentration.<br>
-                3. <strong>Experimental Features:</strong> Micro-expression volatility and acoustic jitter analysis in this context are heuristic approximations.<br>
-                4. <strong>Visual Attention:</strong> Lateral gaze shifts are tracked as behavioral data points, not definitive NLP "accessing cues", which are not scientifically validated.<br>
-                <br>
-                Generated by AEON Forensic Engine v2.4 | Apex Innovate LLC
+            <div class="limits">
+                <strong>Interpretation boundary</strong><br>
+                This prototype summarizes browser camera and microphone signals plus outputs from face-api.js. Expression labels are model probabilities, not verified emotions. Landmark geometry is not eye tracking. Pitch and level variation do not establish stress, deception, intent, personality, cognition, mental state, or truthfulness. No score produced here is validated for clinical, legal, employment, security, or psychological decision making. Processing occurs in the current browser session; this page does not upload captured camera or microphone data.
             </div>
 
             <div class="action-row">
-                <button class="btn-save" onclick="downloadReportLog()">Export Forensic Log (.txt)</button>
-                <button class="btn-close" onclick="closeReport()">Close Case File</button>
+                <button onclick="downloadTrace()">Export session trace</button>
+                <button onclick="closeReport()">Return to camera</button>
             </div>
         </div>
-    </div>
+    </section>
 
     <script>
         const video = document.getElementById('video');
-        const canvas = document.getElementById('overlay');
+        const overlay = document.getElementById('overlay');
         const audioVis = document.getElementById('audioVis');
         const statusText = document.getElementById('statusText');
-        const btnToggle = document.getElementById('btnToggle');
         const loader = document.getElementById('loader');
         const loaderText = document.getElementById('loaderText');
-        
-        // State Globals
-        let isRunning = false;
-        let isModelLoaded = false;
-        let startTime = 0;
-        
-        // Data Buffers
-        let sessionData = []; // Facial Telemetry
-        let audioData = [];   // Acoustic Telemetry
-        
-        // Audio Context
-        let audioCtx;
-        let analyser;
-        let microphone;
-        let audioFeatures = { pitch: 0, volume: 0, isSpeaking: false };
+        const errorMsg = document.getElementById('errorMsg');
+        const btnToggle = document.getElementById('btnToggle');
 
         const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
 
-        // --- INITIALIZATION ---
+        let isRunning = false;
+        let modelsReady = false;
+        let startTime = 0;
+        let visualSamples = [];
+        let audioSamples = [];
+        let audioCtx = null;
+        let analyser = null;
+        let microphone = null;
+
+        function fail(message) {
+            const ring = document.querySelector('.loader-ring');
+            if (ring) ring.style.display = 'none';
+            loaderText.style.display = 'none';
+            errorMsg.style.display = 'block';
+            errorMsg.textContent = message;
+            statusText.textContent = 'INPUT UNAVAILABLE';
+        }
+
         async function init() {
             try {
-                loaderText.innerText = "Loading Neural Networks...";
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
                     faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
                 ]);
-
-                isModelLoaded = true;
-                loaderText.innerText = "Acquiring Biometric Sensors...";
-                startVideo();
-            } catch (err) {
-                console.error("Model Load Error:", err);
-                failState("Neural Network Initialization Failed");
+                modelsReady = true;
+                loaderText.textContent = 'Requesting camera + mic';
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                video.srcObject = stream;
+                initAudio(stream);
+                video.onloadedmetadata = async () => {
+                    await video.play();
+                    loader.style.display = 'none';
+                    btnToggle.disabled = false;
+                    statusText.textContent = 'INPUTS ACTIVE / IDLE';
+                    startVisualLoop();
+                };
+            } catch (error) {
+                console.error(error);
+                fail('Camera or microphone access is unavailable.');
             }
-        }
-
-        function failState(msg) {
-            document.querySelector('.spinner').style.display = 'none';
-            loaderText.style.display = 'none';
-            const errEl = document.getElementById('errorMsg');
-            errEl.style.display = 'block';
-            errEl.innerText = msg;
-            statusText.innerText = "SYSTEM FAILURE";
-            statusText.style.color = "#d63031";
-        }
-
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: {}, audio: true })
-                .then(stream => {
-                    video.srcObject = stream;
-                    initAudio(stream);
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        onVideoReady();
-                    };
-                })
-                .catch(err => {
-                    console.error("AV Error:", err);
-                    failState("Sensor Access Denied: Camera/Mic");
-                });
         }
 
         function initAudio(stream) {
@@ -761,523 +419,259 @@
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 2048;
             microphone.connect(analyser);
-            drawAudioVisualizer();
-            setInterval(analyzeAudioFrame, 50); // High sample rate for jitter
+            requestAnimationFrame(drawAudio);
+            setInterval(sampleAudio, 80);
         }
 
-        // --- AUDIO PROCESSING ---
-        function analyzeAudioFrame() {
-            if (!analyser) return;
-            const bufferLength = analyser.fftSize;
-            const buffer = new Float32Array(bufferLength);
+        function sampleAudio() {
+            if (!analyser || !audioCtx) return;
+            const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
-
-            // RMS / dB
             let sum = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                sum += buffer[i] * buffer[i];
-            }
-            const rms = Math.sqrt(sum / bufferLength);
-            const db = 20 * Math.log10(rms); 
-
-            // Pitch (Autocorrelation)
+            for (const value of buffer) sum += value * value;
+            const rms = Math.sqrt(sum / buffer.length);
+            const dbfs = rms > 0 ? 20 * Math.log10(rms) : -100;
             const pitch = autoCorrelate(buffer, audioCtx.sampleRate);
-
-            audioFeatures = {
-                volume: Math.max(-100, db), 
-                pitch: pitch === -1 ? 0 : pitch,
-                isSpeaking: db > -45 // Threshold
+            const sample = {
+                timestamp: Date.now(),
+                level: Math.max(-100, dbfs),
+                pitch: pitch > 0 ? pitch : 0,
+                aboveThreshold: dbfs > -45
             };
-
-            if (isRunning) {
-                audioData.push({
-                    timestamp: Date.now(),
-                    ...audioFeatures
-                });
-            }
+            if (isRunning) audioSamples.push(sample);
         }
 
         function autoCorrelate(buf, sampleRate) {
-            let SIZE = buf.length;
-            let MAX_SAMPLES = Math.floor(SIZE/2);
-            let best_offset = -1;
-            let best_correlation = 0;
+            const size = buf.length;
+            const maxSamples = Math.floor(size / 2);
             let rms = 0;
-            let foundGoodCorrelation = false;
-            let correlations = new Array(MAX_SAMPLES);
+            for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
+            rms = Math.sqrt(rms / size);
+            if (rms < 0.01) return -1;
 
-            for (let i=0; i<SIZE; i++) {
-                let val = buf[i];
-                rms += val*val;
-            }
-            rms = Math.sqrt(rms/SIZE);
-            if (rms<0.01) return -1; 
+            let bestOffset = -1;
+            let bestCorrelation = 0;
+            let lastCorrelation = 1;
+            let found = false;
+            const correlations = new Array(maxSamples);
 
-            let lastCorrelation=1;
-            for (let offset = 0; offset < MAX_SAMPLES; offset++) {
+            for (let offset = 0; offset < maxSamples; offset++) {
                 let correlation = 0;
-                for (let i=0; i<MAX_SAMPLES; i++) {
-                    correlation += Math.abs((buf[i])-(buf[i+offset]));
-                }
-                correlation = 1 - (correlation/MAX_SAMPLES);
+                for (let i = 0; i < maxSamples; i++) correlation += Math.abs(buf[i] - buf[i + offset]);
+                correlation = 1 - correlation / maxSamples;
                 correlations[offset] = correlation;
-                if ((correlation>0.9) && (correlation > lastCorrelation)) {
-                    foundGoodCorrelation = true;
-                    if (correlation > best_correlation) {
-                        best_correlation = correlation;
-                        best_offset = offset;
+
+                if (correlation > 0.9 && correlation > lastCorrelation) {
+                    found = true;
+                    if (correlation > bestCorrelation) {
+                        bestCorrelation = correlation;
+                        bestOffset = offset;
                     }
-                } else if (foundGoodCorrelation) {
-                    let shift = (correlations[best_offset+1] - correlations[best_offset-1])/correlations[best_offset];  
-                    return sampleRate/(best_offset+(8*shift));
+                } else if (found && bestOffset > 0 && bestOffset < correlations.length - 1) {
+                    const shift = (correlations[bestOffset + 1] - correlations[bestOffset - 1]) / correlations[bestOffset];
+                    return sampleRate / (bestOffset + 8 * shift);
                 }
                 lastCorrelation = correlation;
             }
-            if (best_correlation > 0.01) return sampleRate/best_offset;
-            return -1;
+
+            return bestCorrelation > 0.01 && bestOffset > 0 ? sampleRate / bestOffset : -1;
         }
 
-        function drawAudioVisualizer() {
-            if(!analyser) return;
-            requestAnimationFrame(drawAudioVisualizer);
-
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
-
+        function drawAudio() {
+            requestAnimationFrame(drawAudio);
+            if (!analyser) return;
+            const values = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(values);
             const ctx = audioVis.getContext('2d');
-            const width = audioVis.width;
-            const height = audioVis.height;
-
+            const width = audioVis.width = audioVis.clientWidth * devicePixelRatio;
+            const height = audioVis.height = audioVis.clientHeight * devicePixelRatio;
             ctx.clearRect(0, 0, width, height);
-            
-            // Draw pure waveform or spectrogram style
-            ctx.beginPath();
-            ctx.moveTo(0, height/2);
-            const sliceWidth = width * 1.0 / bufferLength;
+            ctx.fillStyle = isRunning ? '#c63d3d' : '#555';
+            const step = Math.max(1, Math.floor(values.length / 120));
+            const column = width / Math.ceil(values.length / step);
             let x = 0;
-
-            for(let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = v * height/2;
-                
-                // Color based on activity
-                ctx.fillStyle = isRunning ? '#d63031' : '#636e72'; 
-                ctx.fillRect(x, height - (dataArray[i]/255 * height), sliceWidth*2, (dataArray[i]/255 * height));
-                x += sliceWidth * 2;
+            for (let i = 0; i < values.length; i += step) {
+                const h = (values[i] / 255) * height;
+                ctx.fillRect(x, height - h, Math.max(1, column * 0.55), h);
+                x += column;
             }
         }
 
-        function onVideoReady() {
-            loader.style.display = 'none';
-            statusText.innerText = "SENSORS ACTIVE // STANDBY";
-            btnToggle.disabled = false;
-            startVisualLoop();
+        function resizeOverlay() {
+            if (!video.clientWidth || !video.clientHeight) return null;
+            const size = { width: video.clientWidth, height: video.clientHeight };
+            faceapi.matchDimensions(overlay, size);
+            return size;
         }
 
-        // --- VISUAL LOOP ---
+        function orientationFromLandmarks(landmarks) {
+            const nose = landmarks.getNose()[3];
+            const leftEye = landmarks.getLeftEye();
+            const rightEye = landmarks.getRightEye();
+            const leftCenter = (leftEye[0].x + leftEye[3].x) / 2;
+            const rightCenter = (rightEye[0].x + rightEye[3].x) / 2;
+            const eyeSpan = rightCenter - leftCenter;
+            if (!eyeSpan) return 'UNAVAILABLE';
+            const ratio = (nose.x - leftCenter) / eyeSpan;
+            if (ratio < 0.40) return 'RIGHT BIAS';
+            if (ratio > 0.60) return 'LEFT BIAS';
+            return 'CENTER BAND';
+        }
+
         function startVisualLoop() {
-            if (video.clientWidth === 0 || video.clientHeight === 0) {
-                requestAnimationFrame(startVisualLoop);
-                return;
-            }
-
-            const displaySize = { width: video.clientWidth, height: video.clientHeight };
-            faceapi.matchDimensions(canvas, displaySize);
-
-            window.addEventListener('resize', () => {
-                const newSize = { width: video.clientWidth, height: video.clientHeight };
-                faceapi.matchDimensions(canvas, newSize);
-            });
-
             setInterval(async () => {
-                if(video.paused || video.ended || !isModelLoaded) return;
-                
-                // Safe check for dimensions
-                if (video.clientWidth < 1 || video.clientHeight < 1) return;
+                if (!modelsReady || video.paused || video.ended) return;
+                const size = resizeOverlay();
+                if (!size) return;
 
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                const detections = await faceapi
+                    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
                     .withFaceExpressions();
 
-                if (video.clientWidth < 1 || video.clientHeight < 1) return;
-                
-                const dims = faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
-                const resizedDetections = faceapi.resizeResults(detections, dims);
-                
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                resizedDetections.forEach(det => {
-                    const box = det.detection.box;
-                    const emotions = det.expressions;
-                    const landmarks = det.landmarks;
-                    
-                    // Mirroring Logic for UI drawing
-                    const mirroredBoxX = canvas.width - box.x - box.width;
+                const resized = faceapi.resizeResults(detections, size);
+                const ctx = overlay.getContext('2d');
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-                    // --- VISUAL ATTENTION LOGIC (Gaze) ---
-                    // Objective tracking of nose vector vs eye center
-                    const nose = landmarks.getNose()[3]; 
-                    const leftEye = landmarks.getLeftEye(); 
-                    const rightEye = landmarks.getRightEye(); 
-                    const leftEyeX = (leftEye[0].x + leftEye[3].x) / 2;
-                    const rightEyeX = (rightEye[0].x + rightEye[3].x) / 2;
-                    const eyeWidth = rightEyeX - leftEyeX; 
-                    const noseRelativeX = (nose.x - leftEyeX) / eyeWidth;
-                    
-                    let gazeState = "DIRECT";
-                    // Thresholds for lateral aversion
-                    if (noseRelativeX < 0.40) gazeState = "AVERTED (Right)"; 
-                    else if (noseRelativeX > 0.60) gazeState = "AVERTED (Left)";
+                resized.forEach((item, index) => {
+                    const box = item.detection.box;
+                    const mirroredX = overlay.width - box.x - box.width;
+                    const orientation = orientationFromLandmarks(item.landmarks);
+                    const sorted = Object.entries(item.expressions).sort((a, b) => b[1] - a[1]);
+                    const top = sorted[0] || ['unavailable', 0];
 
-                    const sortedEmotions = Object.entries(emotions).sort((a,b) => b[1] - a[1]);
-                    const dominant = sortedEmotions[0];
-                    
-                    // Draw Forensic Bounding Box
-                    let boxColor = '#cfcfcf'; 
-                    if (isRunning) boxColor = '#d63031'; // Recording Red
-                    
-                    // Bracket Style Box
-                    ctx.strokeStyle = boxColor;
+                    ctx.strokeStyle = isRunning ? '#c63d3d' : '#b9b9b9';
                     ctx.lineWidth = 1;
-                    
-                    // Corners only drawing could be cooler, but standard box is safer for now
-                    ctx.strokeRect(mirroredBoxX, box.y, box.width, box.height);
-
-                    // Data Label
-                    ctx.fillStyle = boxColor;
-                    ctx.fillRect(mirroredBoxX, box.y - 15, box.width, 15);
-                    ctx.fillStyle = '#000';
+                    ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+                    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+                    ctx.fillRect(mirroredX, Math.max(0, box.y - 18), box.width, 18);
+                    ctx.fillStyle = '#d8d8d8';
                     ctx.font = '10px Courier New';
-                    ctx.fillText(`SUBJ_01 | ${dominant[0].toUpperCase()} ${(dominant[1]*100).toFixed(0)}%`, mirroredBoxX + 5, box.y - 4);
+                    ctx.fillText(`FACE ${index + 1} / MODEL ${top[0].toUpperCase()} ${(top[1] * 100).toFixed(0)}%`, mirroredX + 5, Math.max(12, box.y - 6));
+                    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+                    ctx.fillRect(mirroredX, box.y + box.height + 2, box.width, 17);
+                    ctx.fillStyle = '#aaa';
+                    ctx.fillText(`ORIENTATION PROXY / ${orientation}`, mirroredX + 5, box.y + box.height + 14);
 
-                    // Gaze Label
-                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                    ctx.fillRect(mirroredBoxX, box.y + box.height + 2, box.width, 15);
-                    ctx.fillStyle = '#fff';
-                    ctx.fillText(`GAZE: ${gazeState}`, mirroredBoxX + 5, box.y + box.height + 12);
-
-                    // Data Collection
-                    if(isRunning) {
-                        sessionData.push({
+                    if (isRunning) {
+                        visualSamples.push({
                             timestamp: Date.now(),
-                            emotions: emotions,
-                            gaze: gazeState
+                            label: top[0],
+                            probability: top[1],
+                            expressions: { ...item.expressions },
+                            orientation
                         });
                     }
                 });
-            }, 100);
+            }, 120);
         }
 
-        // --- SESSION CONTROL ---
+        function standardDeviation(values) {
+            if (!values.length) return 0;
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            return Math.sqrt(values.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / values.length);
+        }
+
         function toggleSession() {
             if (!isRunning) {
-                // START
-                if(audioCtx.state === 'suspended') audioCtx.resume();
-
-                sessionData = [];
-                audioData = [];
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                visualSamples = [];
+                audioSamples = [];
                 startTime = Date.now();
                 isRunning = true;
-                btnToggle.innerText = "TERMINATE SESSION";
+                btnToggle.textContent = 'End observation';
                 btnToggle.classList.add('active');
-                statusText.innerText = "RECORDING BIOMETRIC TELEMETRY...";
-                statusText.style.color = "#d63031";
-            } else {
-                // STOP
-                isRunning = false;
-                btnToggle.innerText = "PROCESSING DATA...";
-                btnToggle.classList.remove('active');
-                btnToggle.disabled = true;
-                
-                setTimeout(() => {
-                    generateForensicReport();
-                    btnToggle.innerText = "INITIALIZE NEW SESSION";
-                    btnToggle.disabled = false;
-                    statusText.innerText = "SENSORS ACTIVE // STANDBY";
-                    statusText.style.color = "#636e72";
-                }, 1500); // Simulated processing time
-            }
-        }
-
-        // --- DATA PROCESSING & STATISTICS ---
-
-        function getStandardDeviation(array) {
-            if(array.length === 0) return 0;
-            const n = array.length;
-            const mean = array.reduce((a, b) => a + b) / n;
-            return Math.sqrt(array.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
-        }
-
-        function calculateExpressionVolatility(data) {
-            if (data.length < 2) return 0;
-            let totalDelta = 0;
-            for(let i=1; i<data.length; i++) {
-                const prev = data[i-1].emotions;
-                const curr = data[i].emotions;
-                // Sum absolute differences of all AU proxies
-                let frameDelta = 
-                    Math.abs(prev.neutral - curr.neutral) +
-                    Math.abs(prev.happy - curr.happy) +
-                    Math.abs(prev.sad - curr.sad) +
-                    Math.abs(prev.angry - curr.angry) +
-                    Math.abs(prev.fearful - curr.fearful) +
-                    Math.abs(prev.disgusted - curr.disgusted);
-                totalDelta += frameDelta;
-            }
-            return totalDelta / (data.length - 1);
-        }
-
-        function generateForensicReport() {
-            const frameCount = sessionData.length;
-            
-            if (frameCount < 30) {
-                alert("Insufficient data density for forensic analysis. Minimum 3s required.");
+                statusText.textContent = 'CAPTURING LOCAL SIGNALS';
                 return;
             }
 
-            // --- 1. SESSION META ---
-            const duration = (Date.now() - startTime) / 1000;
-            
-            const signalQuality = (frameCount / (duration * 10)) * 100; // Approx against 10fps target
-            
-            document.getElementById('sessID').innerText = Math.random().toString(36).substr(2, 9).toUpperCase();
-            document.getElementById('sessDuration').innerText = `Duration: ${duration.toFixed(2)}s`;
-            document.getElementById('sessQuality').innerText = `Signal Quality: ${Math.min(100, signalQuality.toFixed(0))}%`;
-
-            // --- 2. ACOUSTIC ANALYSIS ---
-            const speechFrames = audioData.filter(d => d.isSpeaking);
-            const totalAudioFrames = audioData.length;
-            const speechRate = totalAudioFrames > 0 ? (speechFrames.length / totalAudioFrames) : 0;
-            
-            let pitchMean = 0, pitchVar = 0, volMean = 0, volRange = 0;
-
-            if (speechFrames.length > 0) {
-                // Filter F0 outliers (human range 50-400Hz usually)
-                const pitches = speechFrames.map(d => d.pitch).filter(p => p > 60 && p < 350); 
-                const volumes = speechFrames.map(d => d.volume);
-                
-                if(pitches.length > 0) {
-                    pitchMean = pitches.reduce((a,b)=>a+b, 0) / pitches.length;
-                    pitchVar = getStandardDeviation(pitches);
-                }
-                if(volumes.length > 0) {
-                    volMean = volumes.reduce((a,b)=>a+b, 0) / volumes.length;
-                    volRange = Math.max(...volumes) - Math.min(...volumes);
-                }
-            }
-
-            // Raw Audio Output
-            document.getElementById('rawPitch').innerText = pitchMean.toFixed(1) + " Hz";
-            document.getElementById('rawPitchVar').innerText = pitchVar.toFixed(2) + " (σ)";
-            document.getElementById('rawVol').innerText = volMean.toFixed(1) + " dB";
-            document.getElementById('rawVolRange').innerText = volRange.toFixed(1) + " dB";
-            document.getElementById('rawSpeechRate').innerText = (speechRate*100).toFixed(0) + "%";
-            
-            // Calc Pause Freq (rough proxy: count transitions from speak to silence)
-            let pauseCount = 0;
-            for(let i=1; i<audioData.length; i++){
-                if(audioData[i-1].isSpeaking && !audioData[i].isSpeaking) pauseCount++;
-            }
-            const pauseFreq = (pauseCount / duration).toFixed(2) + " Hz";
-            document.getElementById('rawPauseFreq').innerText = pauseFreq;
-
-
-            // --- 3. VISUAL ANALYSIS ---
-            let gazeShifts = 0;
-            for(let i=1; i<sessionData.length; i++){
-                if(sessionData[i].gaze !== sessionData[i-1].gaze) gazeShifts++;
-            }
-            
-            // Determine dominant gaze
-            let gazeCounts = { direct:0, averted:0 };
-            sessionData.forEach(d => {
-                if(d.gaze === "DIRECT") gazeCounts.direct++;
-                else gazeCounts.averted++;
-            });
-            const domGaze = gazeCounts.direct > gazeCounts.averted ? "Predominantly Direct" : "Predominantly Averted";
-            
-            document.getElementById('rawGazeDir').innerText = domGaze;
-            document.getElementById('rawGazeShifts').innerText = gazeShifts;
-
-            const volatility = calculateExpressionVolatility(sessionData);
-            document.getElementById('compVol').innerText = volatility.toFixed(3);
-
-
-            // --- 4. RISK ASSESSMENT & INFERENCE ---
-            
-            // A. Micro-Expression Volatility Risk
-            // Low (<0.1) = Flat Affect / High ( >0.35) = Emotional Instability/Stress
-            let riskVolText = "Within Normal Limits";
-            let riskVolScore = 0;
-            if (volatility > 0.35) { riskVolText = "ELEVATED (Instability)"; riskVolScore = 0.8; }
-            else if (volatility < 0.05) { riskVolText = "SUPPRESSED (Flat Affect)"; riskVolScore = 0.5; }
-            document.getElementById('riskVol').innerText = riskVolText;
-
-            // B. Acoustic Jitter (Pitch Variance)
-            // High variance typically correlates with physiological arousal/stress
-            let riskJitterText = "Stable";
-            let riskJitterScore = 0;
-            if (pitchVar > 30) { riskJitterText = "SIGNIFICANT (Tremor/Stress)"; riskJitterScore = 0.9; }
-            else if (pitchVar > 15) { riskJitterText = "MODERATE"; riskJitterScore = 0.4; }
-            document.getElementById('compJitter').innerText = pitchVar.toFixed(1); // Using Var as Jitter proxy
-            document.getElementById('riskJitter').innerText = riskJitterText;
-
-            // C. Facial Congruence (Average dominant emotion score)
-            // Low confidence emotions might indicate masking
-            let avgConfidence = 0;
-            sessionData.forEach(d => {
-                const vals = Object.values(d.emotions);
-                avgConfidence += Math.max(...vals);
-            });
-            avgConfidence /= sessionData.length;
-            
-            let riskCongruenceText = "High Congruence";
-            if (avgConfidence < 0.5) riskCongruenceText = "LOW (Potential Masking)";
-            document.getElementById('compCongruence').innerText = avgConfidence.toFixed(2);
-            document.getElementById('riskCongruence').innerText = riskCongruenceText;
-
-
-            // --- 5. COMPOSITE SCORES ---
-            
-            // Cognitive Stress Index (CSI)
-            // Factors: Low Speech Rate (Cognitive Load) + High Pause Rate + Gaze Aversion
-            let csiRaw = 0;
-            if (speechRate < 0.4) csiRaw += 0.4; // High load processing
-            if ((pauseCount/duration) > 0.5) csiRaw += 0.3; // Frequent pauses
-            if ((gazeCounts.averted / frameCount) > 0.5) csiRaw += 0.3; // High aversion
-            const csi = Math.min(1.0, csiRaw);
-
-            // Emotional Arousal Score
-            // Factors: Pitch Variance + Volume Range + Volatility
-            let arousalRaw = 0;
-            if (pitchVar > 20) arousalRaw += 0.4;
-            if (volRange > 10) arousalRaw += 0.2;
-            if (volatility > 0.25) arousalRaw += 0.4;
-            const arousal = Math.min(1.0, arousalRaw);
-
-            // Baseline Congruence
-            // Inverted Stress/Load
-            const congruence = Math.max(0, 1.0 - Math.max(csi, arousal));
-
-
-            // --- UI UPDATES ---
-            
-            // Update Bars
-            updateMeter('barCSI', 'valCSI', csi);
-            updateMeter('barArousal', 'valArousal', arousal);
-            updateMeter('barCongruence', 'valCongruenceBar', congruence);
-
-            // Confidence Score (Simulated based on density)
-            const confidence = Math.min(98, Math.max(40, (duration * 5) + (signalQuality * 0.5))).toFixed(1);
-            document.getElementById('confScore').innerText = confidence + "%";
-
-            // Final Assessment Text
-            let assessment = "BASELINE BEHAVIOR OBSERVED";
-            if (csi > 0.6) assessment = "HIGH COGNITIVE LOAD DETECTED";
-            if (arousal > 0.6) assessment = "ELEVATED EMOTIONAL AROUSAL";
-            if (csi > 0.6 && arousal > 0.6) assessment = "SIGNIFICANT STRESS MARKERS DETECTED";
-            
-            document.getElementById('finalAssessment').innerText = assessment;
-            
-            // Color Logic
-            const assessEl = document.getElementById('finalAssessment');
-            if (csi > 0.6 || arousal > 0.6) assessEl.style.color = "#fdcb6e"; // Warn
-            if (csi > 0.75 || arousal > 0.75) assessEl.style.color = "#d63031"; // Alert
-            if (congruence > 0.7) assessEl.style.color = "#00b894"; // Safe
-
-
-            // Show Report
-            const reportEl = document.getElementById('report');
-            reportEl.classList.add('visible');
+            isRunning = false;
+            btnToggle.classList.remove('active');
+            btnToggle.textContent = 'Begin observation';
+            statusText.textContent = 'INPUTS ACTIVE / IDLE';
+            buildReport();
         }
 
-        function updateMeter(barId, valId, value) {
-            const pct = (value * 100).toFixed(1) + "%";
-            document.getElementById(barId).style.width = pct;
-            document.getElementById(valId).innerText = value.toFixed(2);
+        function buildReport() {
+            const duration = Math.max(0, (Date.now() - startTime) / 1000);
+            const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
+
+            document.getElementById('sessID').textContent = `Session: ${sessionId}`;
+            document.getElementById('sessDuration').textContent = `Duration: ${duration.toFixed(1)} s`;
+            document.getElementById('sessFrames').textContent = `Camera samples: ${visualSamples.length}`;
+
+            const labelCounts = {};
+            visualSamples.forEach(sample => { labelCounts[sample.label] = (labelCounts[sample.label] || 0) + 1; });
+            const dominantLabel = Object.entries(labelCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'none';
+            const probabilities = visualSamples.map(sample => sample.probability);
+            const orientationCounts = {};
+            visualSamples.forEach(sample => { orientationCounts[sample.orientation] = (orientationCounts[sample.orientation] || 0) + 1; });
+            const dominantOrientation = Object.entries(orientationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'none';
+            let orientationChanges = 0;
+            for (let i = 1; i < visualSamples.length; i++) {
+                if (visualSamples[i].orientation !== visualSamples[i - 1].orientation) orientationChanges++;
+            }
+
+            document.getElementById('exprLabel').textContent = dominantLabel;
+            document.getElementById('exprProb').textContent = probabilities.length ? `${(probabilities.reduce((a, b) => a + b, 0) / probabilities.length * 100).toFixed(1)}%` : '0%';
+            document.getElementById('exprVar').textContent = probabilities.length ? standardDeviation(probabilities).toFixed(3) : '0';
+            document.getElementById('orientation').textContent = dominantOrientation;
+            document.getElementById('orientationChanges').textContent = orientationChanges.toString();
+
+            const pitches = audioSamples.map(sample => sample.pitch).filter(value => value >= 60 && value <= 350);
+            const levels = audioSamples.map(sample => sample.level).filter(Number.isFinite);
+            const speechShare = audioSamples.length ? audioSamples.filter(sample => sample.aboveThreshold).length / audioSamples.length : 0;
+            const pitchMeanValue = pitches.length ? pitches.reduce((a, b) => a + b, 0) / pitches.length : 0;
+            const levelMeanValue = levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : 0;
+            const levelRangeValue = levels.length ? Math.max(...levels) - Math.min(...levels) : 0;
+
+            document.getElementById('pitchMean').textContent = `${pitchMeanValue.toFixed(1)} Hz`;
+            document.getElementById('pitchSd').textContent = `${standardDeviation(pitches).toFixed(1)} Hz`;
+            document.getElementById('levelMean').textContent = `${levelMeanValue.toFixed(1)} dBFS`;
+            document.getElementById('levelRange').textContent = `${levelRangeValue.toFixed(1)} dB`;
+            document.getElementById('speechShare').textContent = `${(speechShare * 100).toFixed(0)}%`;
+
+            document.getElementById('report').dataset.sessionId = sessionId;
+            document.getElementById('report').classList.add('visible');
         }
 
         function closeReport() {
             document.getElementById('report').classList.remove('visible');
         }
 
-        function downloadReportLog() {
-            // Gather Data
-            const id = document.getElementById('sessID').innerText;
-            const duration = document.getElementById('sessDuration').innerText;
-            const pitch = document.getElementById('rawPitch').innerText;
-            const vol = document.getElementById('rawVol').innerText;
-            const gaze = document.getElementById('rawGazeDir').innerText;
-            const csi = document.getElementById('valCSI').innerText;
-            const arousal = document.getElementById('valArousal').innerText;
-            const assessment = document.getElementById('finalAssessment').innerText;
-            const date = new Date().toLocaleString();
+        function downloadTrace() {
+            const report = document.getElementById('report');
+            const sessionId = report.dataset.sessionId || 'SESSION';
+            const rows = [...report.querySelectorAll('.trace-row')].map(row => {
+                const label = row.querySelector('.trace-label')?.textContent || '';
+                const value = row.querySelector('.trace-value')?.textContent || '';
+                return `${label}: ${value}`;
+            });
+            const text = [
+                'AEON / SESSION TRACE',
+                document.getElementById('sessID').textContent,
+                document.getElementById('sessDuration').textContent,
+                document.getElementById('sessFrames').textContent,
+                '',
+                ...rows,
+                '',
+                'INTERPRETATION BOUNDARY',
+                'These values summarize browser sensor signals and model outputs. They do not establish emotion, stress, deception, intent, personality, cognition, mental state, or truthfulness. This prototype is not validated for clinical, legal, employment, security, or psychological decision making.'
+            ].join('\n');
 
-            const fileContent = `
-==================================================
-   AEON FORENSIC BIOMETRIC REPORT LOG
-==================================================
-CASE ID: ${id}
-DATE:    ${date}
-${duration}
-SIGNAL QUALITY: ${document.getElementById('sessQuality').innerText}
-
-[01] RAW TELEMETRY
---------------------------------------------------
-Fundamental Freq (F0): ${pitch}
-Pitch Variance:        ${document.getElementById('rawPitchVar').innerText}
-Vocal Intensity:       ${vol}
-Speech Activity:       ${document.getElementById('rawSpeechRate').innerText}
-Visual Attention:      ${gaze}
-Lateral Shifts:        ${document.getElementById('rawGazeShifts').innerText}
-
-[02] COMPUTED BIOMETRICS
---------------------------------------------------
-Micro-Exp Volatility:  ${document.getElementById('compVol').innerText} (${document.getElementById('riskVol').innerText})
-Acoustic Jitter:       ${document.getElementById('compJitter').innerText} (${document.getElementById('riskJitter').innerText})
-Facial Congruence:     ${document.getElementById('compCongruence').innerText} (${document.getElementById('riskCongruence').innerText})
-
-[03] RISK ASSESSMENT PROBABILITY
---------------------------------------------------
-Cognitive Stress Index (CSI):  ${csi}
-Emotional Arousal Score:       ${arousal}
-Baseline Congruence:           ${document.getElementById('valCongruenceBar').innerText}
-
-FINAL ASSESSMENT:
-${assessment}
-
-CONFIDENCE INTERVAL: ${document.getElementById('confScore').innerText}
-
-==================================================
-DISCLAIMER: This report represents statistical probabilities 
-derived from computer vision and signal processing. 
-It does not constitute a legal or clinical diagnosis.
-Generated by AEON Forensic Engine v2.4
-==================================================
-            `;
-
-            // Create Blob
-            const blob = new Blob([fileContent], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            
-            // Create Link and Click
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `AEON_FORENSIC_LOG_${id}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            
-            // Cleanup
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `AEON_SESSION_${sessionId}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
         }
 
+        window.addEventListener('resize', resizeOverlay);
         window.addEventListener('load', init);
-
     </script>
 </body>
 </html>
-
-
