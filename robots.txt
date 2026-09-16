@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://facial-gesture-interpretation-engin.vercel.app/sitemap.xml
