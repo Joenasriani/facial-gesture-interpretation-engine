@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="AEON is an experimental browser interface for observing camera, facial landmark, expression model, and microphone signals without inferring intent, deception, personality, or psychological state.">
     <title>AEON | Browser Signal Observation Interface</title>
-    <!-- A3: AEON canonical search metadata -->
     <meta name="author" content="Joe Nasr">
     <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
     <link rel="canonical" href="https://facial-gesture-interpretation-engin.vercel.app/">
@@ -18,9 +17,28 @@
     <meta name="twitter:title" content="AEON | Browser Signal Observation Interface">
     <meta name="twitter:description" content="Camera, landmark, expression-model and microphone signal observation without psychological or deception inference.">
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"WebApplication","@id":"https://facial-gesture-interpretation-engin.vercel.app/#application","name":"AEON","alternateName":"AEON Signal Observation Interface","url":"https://facial-gesture-interpretation-engin.vercel.app/","description":"Experimental browser interface for observing camera landmarks, expression-model probabilities, orientation proxies, pitch, audio level and session variability without inferring deception, intent, personality, cognition, mental state or truthfulness.","applicationCategory":"MultimediaApplication","operatingSystem":"Web browser","creator":{"@type":"Person","@id":"https://joe-nasr-signals.vercel.app/v2/#joe-nasr","name":"Joe Nasr","url":"https://joe-nasr-signals.vercel.app/v2/"},"sameAs":"https://github.com/Joenasriani/facial-gesture-interpretation-engine"}
+    {
+      "@context":"https://schema.org",
+      "@type":"WebApplication",
+      "@id":"https://facial-gesture-interpretation-engin.vercel.app/#application",
+      "name":"AEON",
+      "alternateName":"AEON Signal Observation Interface",
+      "url":"https://facial-gesture-interpretation-engin.vercel.app/",
+      "description":"Experimental browser interface for observing camera landmarks, expression-model probabilities, orientation proxies, pitch, audio level and session variability without inferring deception, intent, personality, cognition, mental state or truthfulness.",
+      "applicationCategory":"MultimediaApplication",
+      "operatingSystem":"Web browser",
+      "dateModified":"2026-09-17",
+      "creator":{"@type":"Person","@id":"https://joe-nasr-signals.vercel.app/v2/#joe-nasr","name":"Joe Nasr","url":"https://joe-nasr-signals.vercel.app/v2/"},
+      "sameAs":"https://github.com/Joenasriani/facial-gesture-interpretation-engine",
+      "citation":[
+        "https://pubmed.ncbi.nlm.nih.gov/31313636/",
+        "https://pubmed.ncbi.nlm.nih.gov/38202988/",
+        "https://pubmed.ncbi.nlm.nih.gov/38966729/",
+        "https://pubmed.ncbi.nlm.nih.gov/41102940/",
+        "https://pubmed.ncbi.nlm.nih.gov/32128436/"
+      ]
+    }
     </script>
-    <!-- /A3: AEON canonical search metadata -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         :root {
@@ -36,7 +54,6 @@
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
         html, body { width: 100%; height: 100%; margin: 0; }
 
         body {
@@ -340,7 +357,7 @@
                 <div class="report-meta">
                     <span id="sessID">Session: none</span><br>
                     <span id="sessDuration">Duration: 0 s</span><br>
-                    <span id="sessFrames">Frames: 0</span>
+                    <span id="sessFrames">Usable camera samples: 0</span>
                 </div>
             </div>
 
@@ -348,9 +365,11 @@
                 <h2>Camera model output</h2>
                 <div class="trace-row"><span class="trace-label">Dominant expression model label</span><span class="trace-value" id="exprLabel">none</span></div>
                 <div class="trace-row"><span class="trace-label">Mean top label probability</span><span class="trace-value" id="exprProb">0</span></div>
-                <div class="trace-row"><span class="trace-label">Expression score variability</span><span class="trace-value" id="exprVar">0</span></div>
-                <div class="trace-row"><span class="trace-label">Horizontal head orientation proxy</span><span class="trace-value" id="orientation">none</span></div>
-                <div class="trace-row"><span class="trace-label">Orientation state changes</span><span class="trace-value" id="orientationChanges">0</span></div>
+                <div class="trace-row"><span class="trace-label">Model-score variability</span><span class="trace-value" id="exprVar">0</span></div>
+                <div class="trace-row"><span class="trace-label">Horizontal landmark-ratio proxy</span><span class="trace-value" id="orientation">none</span></div>
+                <div class="trace-row"><span class="trace-label">Proxy state changes</span><span class="trace-value" id="orientationChanges">0</span></div>
+                <div class="trace-row"><span class="trace-label">Multi-face frames skipped</span><span class="trace-value" id="multiFaceFrames">0</span></div>
+                <div class="trace-row"><span class="trace-label">No-face frames</span><span class="trace-value" id="noFaceFrames">0</span></div>
             </div>
 
             <div class="trace-section">
@@ -359,12 +378,12 @@
                 <div class="trace-row"><span class="trace-label">Pitch standard deviation</span><span class="trace-value" id="pitchSd">0 Hz</span></div>
                 <div class="trace-row"><span class="trace-label">Mean signal level</span><span class="trace-value" id="levelMean">0 dBFS</span></div>
                 <div class="trace-row"><span class="trace-label">Signal level range</span><span class="trace-value" id="levelRange">0 dB</span></div>
-                <div class="trace-row"><span class="trace-label">Frames above speech threshold</span><span class="trace-value" id="speechShare">0%</span></div>
+                <div class="trace-row"><span class="trace-label">Frames above -45 dBFS level threshold</span><span class="trace-value" id="levelThresholdShare">0%</span></div>
             </div>
 
             <div class="limits">
                 <strong>Interpretation boundary</strong><br>
-                This prototype summarizes browser camera and microphone signals plus outputs from face-api.js. Expression labels are model probabilities, not verified emotions. Landmark geometry is not eye tracking. Pitch and level variation do not establish stress, deception, intent, personality, cognition, mental state, or truthfulness. No score produced here is validated for clinical, legal, employment, security, or psychological decision making. Processing occurs in the current browser session; this page does not upload captured camera or microphone data.
+                This prototype summarizes browser camera and microphone signals plus outputs from face-api.js. Expression labels are model probabilities, not verified emotions. The horizontal landmark-ratio proxy is not eye tracking or validated gaze estimation. Pitch and level variation do not establish stress, deception, intent, personality, cognition, mental state, or truthfulness. The -45 dBFS cutoff and 60-350 Hz summary range are engineering choices, not psychological or clinical thresholds. Multi-face frames are excluded from participant-level camera summaries because this prototype does not track identity. No score produced here is validated for clinical, legal, employment, security, or psychological decision making. Captured camera and microphone content is processed in the current browser session and is not uploaded by this page; application scripts and model assets are fetched from external hosts.
             </div>
 
             <div class="action-row">
@@ -385,12 +404,18 @@
         const btnToggle = document.getElementById('btnToggle');
 
         const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        const LEVEL_THRESHOLD_DBFS = -45;
+        const MIN_SUMMARY_F0 = 60;
+        const MAX_SUMMARY_F0 = 350;
 
         let isRunning = false;
         let modelsReady = false;
+        let visualLoopBusy = false;
         let startTime = 0;
         let visualSamples = [];
         let audioSamples = [];
+        let multiFaceFrames = 0;
+        let noFaceFrames = 0;
         let audioCtx = null;
         let analyser = null;
         let microphone = null;
@@ -452,7 +477,7 @@
                 timestamp: Date.now(),
                 level: Math.max(-100, dbfs),
                 pitch: pitch > 0 ? pitch : 0,
-                aboveThreshold: dbfs > -45
+                aboveLevelThreshold: dbfs > LEVEL_THRESHOLD_DBFS
             };
             if (isRunning) audioSamples.push(sample);
         }
@@ -529,56 +554,69 @@
             const eyeSpan = rightCenter - leftCenter;
             if (!eyeSpan) return 'UNAVAILABLE';
             const ratio = (nose.x - leftCenter) / eyeSpan;
-            if (ratio < 0.40) return 'RIGHT BIAS';
-            if (ratio > 0.60) return 'LEFT BIAS';
+            if (ratio < 0.40) return 'LOW RATIO';
+            if (ratio > 0.60) return 'HIGH RATIO';
             return 'CENTER BAND';
+        }
+
+        function sampleSingleFace(item) {
+            const sorted = Object.entries(item.expressions).sort((a, b) => b[1] - a[1]);
+            const top = sorted[0] || ['unavailable', 0];
+            visualSamples.push({
+                timestamp: Date.now(),
+                label: top[0],
+                probability: top[1],
+                expressions: { ...item.expressions },
+                orientation: orientationFromLandmarks(item.landmarks)
+            });
         }
 
         function startVisualLoop() {
             setInterval(async () => {
-                if (!modelsReady || video.paused || video.ended) return;
+                if (visualLoopBusy || !modelsReady || video.paused || video.ended) return;
                 const size = resizeOverlay();
                 if (!size) return;
 
-                const detections = await faceapi
-                    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceExpressions();
+                visualLoopBusy = true;
+                try {
+                    const detections = await faceapi
+                        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceExpressions();
 
-                const resized = faceapi.resizeResults(detections, size);
-                const ctx = overlay.getContext('2d');
-                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                    const resized = faceapi.resizeResults(detections, size);
+                    const ctx = overlay.getContext('2d');
+                    ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-                resized.forEach((item, index) => {
-                    const box = item.detection.box;
-                    const mirroredX = overlay.width - box.x - box.width;
-                    const orientation = orientationFromLandmarks(item.landmarks);
-                    const sorted = Object.entries(item.expressions).sort((a, b) => b[1] - a[1]);
-                    const top = sorted[0] || ['unavailable', 0];
+                    resized.forEach((item, index) => {
+                        const box = item.detection.box;
+                        const mirroredX = overlay.width - box.x - box.width;
+                        const orientation = orientationFromLandmarks(item.landmarks);
+                        const sorted = Object.entries(item.expressions).sort((a, b) => b[1] - a[1]);
+                        const top = sorted[0] || ['unavailable', 0];
 
-                    ctx.strokeStyle = isRunning ? '#c63d3d' : '#b9b9b9';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(mirroredX, box.y, box.width, box.height);
-                    ctx.fillStyle = 'rgba(0,0,0,0.78)';
-                    ctx.fillRect(mirroredX, Math.max(0, box.y - 18), box.width, 18);
-                    ctx.fillStyle = '#d8d8d8';
-                    ctx.font = '10px Courier New';
-                    ctx.fillText(`FACE ${index + 1} / MODEL ${top[0].toUpperCase()} ${(top[1] * 100).toFixed(0)}%`, mirroredX + 5, Math.max(12, box.y - 6));
-                    ctx.fillStyle = 'rgba(0,0,0,0.78)';
-                    ctx.fillRect(mirroredX, box.y + box.height + 2, box.width, 17);
-                    ctx.fillStyle = '#aaa';
-                    ctx.fillText(`ORIENTATION PROXY / ${orientation}`, mirroredX + 5, box.y + box.height + 14);
+                        ctx.strokeStyle = isRunning ? '#c63d3d' : '#b9b9b9';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+                        ctx.fillStyle = 'rgba(0,0,0,0.78)';
+                        ctx.fillRect(mirroredX, Math.max(0, box.y - 18), box.width, 18);
+                        ctx.fillStyle = '#d8d8d8';
+                        ctx.font = '10px Courier New';
+                        ctx.fillText(`FACE ${index + 1} / MODEL ${top[0].toUpperCase()} ${(top[1] * 100).toFixed(0)}%`, mirroredX + 5, Math.max(12, box.y - 6));
+                        ctx.fillStyle = 'rgba(0,0,0,0.78)';
+                        ctx.fillRect(mirroredX, box.y + box.height + 2, box.width, 17);
+                        ctx.fillStyle = '#aaa';
+                        ctx.fillText(`LANDMARK RATIO / ${orientation}`, mirroredX + 5, box.y + box.height + 14);
+                    });
 
                     if (isRunning) {
-                        visualSamples.push({
-                            timestamp: Date.now(),
-                            label: top[0],
-                            probability: top[1],
-                            expressions: { ...item.expressions },
-                            orientation
-                        });
+                        if (resized.length === 1) sampleSingleFace(resized[0]);
+                        else if (resized.length === 0) noFaceFrames++;
+                        else multiFaceFrames++;
                     }
-                });
+                } finally {
+                    visualLoopBusy = false;
+                }
             }, 120);
         }
 
@@ -593,6 +631,8 @@
                 if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
                 visualSamples = [];
                 audioSamples = [];
+                multiFaceFrames = 0;
+                noFaceFrames = 0;
                 startTime = Date.now();
                 isRunning = true;
                 btnToggle.textContent = 'End observation';
@@ -614,7 +654,9 @@
 
             document.getElementById('sessID').textContent = `Session: ${sessionId}`;
             document.getElementById('sessDuration').textContent = `Duration: ${duration.toFixed(1)} s`;
-            document.getElementById('sessFrames').textContent = `Camera samples: ${visualSamples.length}`;
+            document.getElementById('sessFrames').textContent = `Usable camera samples: ${visualSamples.length}`;
+            document.getElementById('multiFaceFrames').textContent = multiFaceFrames.toString();
+            document.getElementById('noFaceFrames').textContent = noFaceFrames.toString();
 
             const labelCounts = {};
             visualSamples.forEach(sample => { labelCounts[sample.label] = (labelCounts[sample.label] || 0) + 1; });
@@ -634,9 +676,9 @@
             document.getElementById('orientation').textContent = dominantOrientation;
             document.getElementById('orientationChanges').textContent = orientationChanges.toString();
 
-            const pitches = audioSamples.map(sample => sample.pitch).filter(value => value >= 60 && value <= 350);
+            const pitches = audioSamples.map(sample => sample.pitch).filter(value => value >= MIN_SUMMARY_F0 && value <= MAX_SUMMARY_F0);
             const levels = audioSamples.map(sample => sample.level).filter(Number.isFinite);
-            const speechShare = audioSamples.length ? audioSamples.filter(sample => sample.aboveThreshold).length / audioSamples.length : 0;
+            const levelThresholdShare = audioSamples.length ? audioSamples.filter(sample => sample.aboveLevelThreshold).length / audioSamples.length : 0;
             const pitchMeanValue = pitches.length ? pitches.reduce((a, b) => a + b, 0) / pitches.length : 0;
             const levelMeanValue = levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : 0;
             const levelRangeValue = levels.length ? Math.max(...levels) - Math.min(...levels) : 0;
@@ -645,7 +687,7 @@
             document.getElementById('pitchSd').textContent = `${standardDeviation(pitches).toFixed(1)} Hz`;
             document.getElementById('levelMean').textContent = `${levelMeanValue.toFixed(1)} dBFS`;
             document.getElementById('levelRange').textContent = `${levelRangeValue.toFixed(1)} dB`;
-            document.getElementById('speechShare').textContent = `${(speechShare * 100).toFixed(0)}%`;
+            document.getElementById('levelThresholdShare').textContent = `${(levelThresholdShare * 100).toFixed(0)}%`;
 
             document.getElementById('report').dataset.sessionId = sessionId;
             document.getElementById('report').classList.add('visible');
@@ -672,7 +714,7 @@
                 ...rows,
                 '',
                 'INTERPRETATION BOUNDARY',
-                'These values summarize browser sensor signals and model outputs. They do not establish emotion, stress, deception, intent, personality, cognition, mental state, or truthfulness. This prototype is not validated for clinical, legal, employment, security, or psychological decision making.'
+                'These values summarize browser sensor signals and model outputs. They do not establish emotion, stress, deception, intent, personality, cognition, mental state, or truthfulness. Multi-face camera frames are excluded from the session summary because this prototype does not perform identity tracking. The -45 dBFS cutoff and 60-350 Hz F0 summary range are engineering settings, not validated psychological thresholds. This prototype is not validated for clinical, legal, employment, security, or psychological decision making.'
             ].join('\n');
 
             const blob = new Blob([text], { type: 'text/plain' });
