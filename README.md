@@ -1,7 +1,7 @@
 # Facial Gesture Interpretation Engine
 
 **Author:** Joe Nasr  
-**Canonical identity:** https://joe-nasr-signals.vercel.app/v2/  
+**Identity:** https://joe-nasr-signals.vercel.app/v2/  
 **Live prototype:** https://facial-gesture-interpretation-engin.vercel.app
 
 This repository is an experimental browser prototype for observing camera and microphone signals during an interview style session. It uses face detection, facial expression probabilities, landmark geometry, basic gaze direction heuristics, pitch estimation, volume measurements, and simple derived scores.
