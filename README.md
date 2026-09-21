@@ -1,7 +1,7 @@
 # Facial Gesture Interpretation Engine
 
 **Author:** Joe Nasr  
-**Identity:** https://joe-nasr-signals.vercel.app/v2/  
+**Identity:** https://joe-nasr-signals.vercel.app/  
 **Live prototype:** https://facial-gesture-interpretation-engin.vercel.app
 
 AEON is a browser-based multimodal signal-observation prototype for studying what can and cannot be inferred from camera and microphone measurements during an interview-style session.
