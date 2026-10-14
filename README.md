@@ -65,3 +65,7 @@ See [RESEARCH_NOTES.md](RESEARCH_NOTES.md) for the measurement-to-construct map 
 Browser prototype and research artifact. The current implementation is useful for studying interaction design, multimodal signal visualization, measurement reliability, and the limits of inference. It is not presented as a validated psychological, forensic, biometric-diagnostic, or deception-detection instrument.
 
 Repository: https://github.com/Joenasriani/facial-gesture-interpretation-engine
+
+Credit: Joe Nasr
+
+Portfolio: https://joe-nasr-signals.vercel.app/
